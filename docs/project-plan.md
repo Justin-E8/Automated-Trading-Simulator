@@ -98,6 +98,24 @@ This order is intentional. Each phase unlocks the next one and avoids large refa
 - user can upload CSV and run simulation without editing JSON manually
 - invalid CSV is rejected with clear error responses
 
+### Phase 1.5 - Real-world market data provider integration
+
+1. Introduce a `MarketDataProvider` interface so data source is pluggable.
+2. Implement first provider adapter (for example Yahoo Finance CSV download).
+3. Add API endpoint to fetch candles by:
+   - symbol
+   - date range
+   - interval
+4. Normalize fetched provider data to internal candle model.
+5. Add provider-rate-limit/error handling and user-facing error messages.
+6. Cache/store fetched datasets to avoid repeated provider calls.
+
+**Exit criteria**
+
+- user can run a backtest by entering symbol/date range without manual CSV upload
+- fetched provider data is normalized and validated by the same candle rules as CSV data
+- repeated runs on same symbol/date range reuse cached data when available
+
 ### Phase 2 - Multi-strategy framework
 
 1. Add strategy selection to request model (not hardcoded to SMA crossover).
@@ -215,7 +233,7 @@ This order is intentional. Each phase unlocks the next one and avoids large refa
 
 The final project is complete when a user can:
 
-1. upload historical data
+1. upload historical CSV data or fetch market data by symbol/date range
 2. run multiple strategies with configurable risk controls
 3. persist and retrieve backtest runs
 4. compare runs and parameter experiments in UI

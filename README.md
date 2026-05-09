@@ -131,11 +131,12 @@ Example row:
 
 ## Planned next steps
 
-1. Multi-strategy framework (add mean reversion strategy and strategy selector)
-2. Persist simulation runs/results in PostgreSQL
-3. Add risk controls (position sizing, stop loss, max drawdown guardrails)
-4. Add richer analysis metrics and parameter sweeps
-5. Keep improving the lightweight UI before considering a heavier frontend stack
+1. Market data provider integration (fetch candles by symbol/date range in addition to CSV upload)
+2. Multi-strategy framework (add mean reversion strategy and strategy selector)
+3. Persist simulation runs/results in PostgreSQL
+4. Add risk controls (position sizing, stop loss, max drawdown guardrails)
+5. Add richer analysis metrics and parameter sweeps
+6. Keep improving the lightweight UI before considering a heavier frontend stack
 
 ---
 
