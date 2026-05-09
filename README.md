@@ -57,16 +57,18 @@ This repository is designed to become a resume-quality software engineering proj
 
 ## Local setup
 
+No global Maven install is required; use the included Maven Wrapper.
+
 ### 1) Start the API
 
 ```bash
-mvn spring-boot:run
+./mvnw spring-boot:run
 ```
 
 ### 2) Run tests
 
 ```bash
-mvn test
+./mvnw test
 ```
 
 ## Planned next steps
