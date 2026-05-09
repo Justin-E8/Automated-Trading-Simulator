@@ -198,7 +198,6 @@ function renderEquityCurve(points) {
   ctx.stroke();
 }
 
-document.getElementById("loadSampleButton").addEventListener("click", loadSampleCandles);
 document.getElementById("previewCsvButton").addEventListener("click", previewCsv);
 document.getElementById("runCsvBacktestButton").addEventListener("click", runCsvBacktest);
 
