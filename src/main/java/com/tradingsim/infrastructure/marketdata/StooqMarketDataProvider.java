@@ -1,6 +1,7 @@
 package com.tradingsim.infrastructure.marketdata;
 
 import com.tradingsim.domain.Candle;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 import java.io.IOException;
@@ -29,6 +30,11 @@ public class StooqMarketDataProvider implements MarketDataProvider {
     private final HttpClient httpClient = HttpClient.newBuilder()
             .connectTimeout(Duration.ofSeconds(12))
             .build();
+    private final String apiKey;
+
+    public StooqMarketDataProvider(@Value("${market-data.stooq.api-key:}") String apiKey) {
+        this.apiKey = apiKey;
+    }
 
     @Override
     public String providerName() {
@@ -44,6 +50,9 @@ public class StooqMarketDataProvider implements MarketDataProvider {
         String resolvedSymbol = resolveSymbol(symbol);
         String encodedSymbol = URLEncoder.encode(resolvedSymbol, StandardCharsets.UTF_8);
         String url = String.format(BASE_URL, encodedSymbol);
+        if (!apiKey.isBlank()) {
+            url = url + "&apikey=" + URLEncoder.encode(apiKey, StandardCharsets.UTF_8);
+        }
 
         String csvContent = downloadCsv(url);
         List<Candle> candles = parseCsv(csvContent, startDate, endDate);
@@ -69,7 +78,13 @@ public class StooqMarketDataProvider implements MarketDataProvider {
             if (response.statusCode() != 200) {
                 throw new IllegalArgumentException("Market data provider returned status " + response.statusCode() + ".");
             }
-            return response.body();
+            String body = response.body();
+            if (body.toLowerCase(Locale.ROOT).contains("get_apikey")) {
+                throw new IllegalArgumentException(
+                        "Stooq requires an API key. Set 'market-data.stooq.api-key' (or STOOQ_API_KEY env var)."
+                );
+            }
+            return body;
         } catch (IOException exception) {
             throw new IllegalArgumentException("Failed to fetch market data: " + exception.getMessage());
         } catch (InterruptedException exception) {
@@ -82,6 +97,9 @@ public class StooqMarketDataProvider implements MarketDataProvider {
         String[] lines = csvContent.split("\\R");
         if (lines.length <= 1) {
             throw new IllegalArgumentException("Market data provider returned empty CSV content.");
+        }
+        if (!lines[0].trim().equalsIgnoreCase("Date,Open,High,Low,Close,Volume")) {
+            throw new IllegalArgumentException("Unexpected market data CSV format from provider.");
         }
 
         List<Candle> candles = new ArrayList<>();
