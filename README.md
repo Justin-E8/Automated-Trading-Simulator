@@ -21,10 +21,8 @@ This repository is designed to become a resume-quality software engineering proj
 
 ## Current backend capabilities
 
-- Run SMA crossover backtests through a REST endpoint
-- Run backtests from uploaded CSV files (no candle JSON editing required)
+- Run SMA crossover backtests from uploaded CSV files
 - Accept raw Yahoo Finance CSV exports directly (no conversion script required)
-- Fetch real market candles by symbol/date range and run backtests without CSV upload
 - Simulate buy/sell execution with configurable fee basis points
 - Track:
   - trade events
@@ -34,33 +32,8 @@ This repository is designed to become a resume-quality software engineering proj
 
 ## API endpoints (initial)
 
-- `POST /api/v1/simulations/backtest`
 - `POST /api/v1/simulations/csv/preview`
 - `POST /api/v1/simulations/csv/backtest`
-- `POST /api/v1/simulations/market-data/fetch`
-- `POST /api/v1/simulations/market-data/backtest`
-- `GET /api/v1/simulations/sample-candles`
-
-### Example request body (`POST /api/v1/simulations/backtest`)
-
-```json
-{
-  "symbol": "AAPL",
-  "initialCash": 10000.0,
-  "quantityPerTrade": 10,
-  "feeBps": 5.0,
-  "shortWindow": 3,
-  "longWindow": 5,
-  "candles": [
-    {"timestamp":"2025-01-01T09:30:00","open":100.0,"high":100.0,"low":100.0,"close":100.0,"volume":1000},
-    {"timestamp":"2025-01-02T09:30:00","open":101.0,"high":101.0,"low":101.0,"close":101.0,"volume":1000},
-    {"timestamp":"2025-01-03T09:30:00","open":102.0,"high":102.0,"low":102.0,"close":102.0,"volume":1000},
-    {"timestamp":"2025-01-04T09:30:00","open":103.5,"high":103.5,"low":103.5,"close":103.5,"volume":1000},
-    {"timestamp":"2025-01-05T09:30:00","open":104.2,"high":104.2,"low":104.2,"close":104.2,"volume":1000},
-    {"timestamp":"2025-01-06T09:30:00","open":104.0,"high":104.0,"low":104.0,"close":104.0,"volume":1000}
-  ]
-}
-```
 
 ## Local setup
 
@@ -90,12 +63,16 @@ No global Maven install is required; use the included Maven Wrapper.
 ./mvnw test
 ```
 
-### 3) Quick API check
+### 3) Quick API check (CSV preview)
 
-With the app running, verify sample data endpoint:
+With the app running, verify CSV preview endpoint:
 
 ```bash
-curl http://localhost:8080/api/v1/simulations/sample-candles
+printf '%s\n' \
+'timestamp,open,high,low,close,volume' \
+'2025-01-01T09:30:00,100,101,99,100.5,1000' \
+'2025-01-02T09:30:00,100.5,102,100,101.7,1200' \
+| curl -X POST http://localhost:8080/api/v1/simulations/csv/preview -F "file=@-;filename=quick-test.csv;type=text/csv"
 ```
 
 ### 4) Use the built-in simulator UI
@@ -106,12 +83,9 @@ Once the app is running, open:
 
 From there you can:
 
-- load sample candles
 - adjust strategy parameters
-- run a JSON-based backtest
 - upload a CSV, preview candle stats, and run a CSV-based backtest
-- fetch market candles by symbol/date range and run market-data backtests
-- inspect metrics, trades, equity curve, and raw JSON output
+- inspect metrics, trades, and equity curve output
 
 ### Recommended real-world stock workflow (no API key)
 
@@ -134,6 +108,12 @@ By default this saves into:
 
 ```text
 data/generated-csv/AAPL-2024-01-01-2025-01-01.csv
+```
+
+Use a custom output directory:
+
+```bash
+python3 scripts/fetch_yahoo_csv.py --ticker AAPL --start 2024-01-01 --end 2025-01-01 --out-dir data/my-csvs
 ```
 
 You can override destination if needed:
@@ -175,28 +155,13 @@ Example row:
 2025-01-01T09:30:00,100.00,101.00,99.00,100.50,1000
 ```
 
-### Market data mode notes
-
-- Current provider adapter: **Alpha Vantage** (daily interval `1d`)
-- Uses Alpha Vantage `TIME_SERIES_DAILY` CSV endpoint with `outputsize=compact` (standard/free API keys)
-- Compact mode generally returns recent ~100 trading days
-- Because third-party APIs can have limits, CSV upload is the most reliable default workflow.
-- Configure API key with env var:
-  - `export ALPHA_VANTAGE_API_KEY=your_key_here`
-- Enter symbol + start/end date in UI and click:
-  - `Fetch Market Data` (preview stats/sample candles)
-  - `Run Backtest from Market Data`
-- Provider responses are normalized and validated with the same candle rules as CSV ingestion.
-- Fetched datasets are cached in-memory for repeated same-range requests.
-
 ## Planned next steps
 
 1. Multi-strategy framework (add mean reversion strategy and strategy selector)
 2. Persist simulation runs/results in PostgreSQL
 3. Add risk controls (position sizing, stop loss, max drawdown guardrails)
 4. Add richer analysis metrics and parameter sweeps
-5. Add additional market data providers beyond initial adapter
-6. Keep improving the lightweight UI before considering a heavier frontend stack
+5. Keep improving the lightweight UI before considering a heavier frontend stack
 
 ---
 

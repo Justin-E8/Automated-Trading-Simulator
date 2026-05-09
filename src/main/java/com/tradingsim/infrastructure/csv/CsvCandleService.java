@@ -20,6 +20,12 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 
+/**
+ * CSV ingestion and normalization for historical candles.
+ *
+ * <p>Supports both simulator-native headers and Yahoo Finance export headers,
+ * then normalizes rows into domain {@link Candle} objects with shared validation.</p>
+ */
 @Service
 public class CsvCandleService {
 
@@ -39,6 +45,9 @@ public class CsvCandleService {
         this.candleValidationService = candleValidationService;
     }
 
+    /**
+     * Parses and validates all candles from an uploaded CSV file.
+     */
     public List<Candle> parseCandles(MultipartFile file) {
         if (file == null || file.isEmpty()) {
             throw new IllegalArgumentException("CSV file is required and cannot be empty.");
