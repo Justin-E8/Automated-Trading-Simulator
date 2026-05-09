@@ -28,7 +28,7 @@ public class AlphaVantageMarketDataProvider implements MarketDataProvider {
     private static final String PROVIDER_NAME = "alphavantage";
     private static final String SUPPORTED_INTERVAL = "1d";
     private static final String BASE_URL =
-            "https://www.alphavantage.co/query?function=TIME_SERIES_DAILY&symbol=%s&outputsize=full&datatype=csv&apikey=%s";
+            "https://www.alphavantage.co/query?function=TIME_SERIES_DAILY&symbol=%s&outputsize=compact&datatype=csv&apikey=%s";
 
     private final HttpClient httpClient = HttpClient.newBuilder()
             .connectTimeout(Duration.ofSeconds(12))
@@ -70,7 +70,8 @@ public class AlphaVantageMarketDataProvider implements MarketDataProvider {
 
         if (candles.isEmpty()) {
             throw new IllegalArgumentException("No market data found for symbol '" + symbol
-                    + "' in the requested date range.");
+                    + "' in the requested date range. Free Alpha Vantage daily endpoint returns compact data"
+                    + " (recent ~100 trading days). Try a more recent start date or use a premium plan.");
         }
 
         candles.sort(Comparator.comparing(Candle::timestamp));
