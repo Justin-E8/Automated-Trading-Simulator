@@ -10,6 +10,7 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
@@ -24,6 +25,14 @@ public class CsvCandleService {
 
     private static final List<String> REQUIRED_COLUMNS = List.of("timestamp", "open", "high", "low", "close", "volume");
     private static final DateTimeFormatter SPACE_SEPARATED_TIMESTAMP = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+    private static final Map<String, List<String>> COLUMN_ALIASES = Map.of(
+            "timestamp", List.of("timestamp", "date"),
+            "open", List.of("open"),
+            "high", List.of("high"),
+            "low", List.of("low"),
+            "close", List.of("close", "adj close"),
+            "volume", List.of("volume")
+    );
     private final CandleValidationService candleValidationService;
 
     public CsvCandleService(CandleValidationService candleValidationService) {
@@ -43,7 +52,7 @@ public class CsvCandleService {
 
             List<String> headerTokens = splitCsvLine(headerLine);
             Map<String, Integer> headerIndex = headerIndexByName(headerTokens);
-            validateRequiredColumns(headerIndex);
+            Map<String, Integer> resolvedColumns = resolveCanonicalColumns(headerIndex);
 
             List<Candle> candles = new ArrayList<>();
             String line;
@@ -56,7 +65,7 @@ public class CsvCandleService {
                 }
 
                 List<String> values = splitCsvLine(line);
-                Candle candle = parseCandleRow(values, headerIndex, lineNumber);
+                Candle candle = parseCandleRow(values, resolvedColumns, lineNumber);
                 candles.add(candle);
             }
 
@@ -107,36 +116,52 @@ public class CsvCandleService {
         return index;
     }
 
-    private void validateRequiredColumns(Map<String, Integer> headerIndex) {
+    private Map<String, Integer> resolveCanonicalColumns(Map<String, Integer> headerIndex) {
+        Map<String, Integer> resolved = new HashMap<>();
         List<String> missing = REQUIRED_COLUMNS.stream()
-                .filter(column -> !headerIndex.containsKey(column))
+                .filter(column -> resolveColumnIndex(column, headerIndex) == null)
                 .toList();
         if (!missing.isEmpty()) {
-            throw new IllegalArgumentException("CSV is missing required columns: " + String.join(", ", missing));
+            throw new IllegalArgumentException("CSV is missing required columns: " + String.join(", ", missing)
+                    + ". Supported aliases include Yahoo headers like Date and Adj Close.");
         }
+        for (String required : REQUIRED_COLUMNS) {
+            resolved.put(required, resolveColumnIndex(required, headerIndex));
+        }
+        return resolved;
     }
 
-    private Candle parseCandleRow(List<String> values, Map<String, Integer> headerIndex, int lineNumber) {
-        LocalDateTime timestamp = parseTimestamp(requiredValue(values, headerIndex, "timestamp", lineNumber), lineNumber);
-        BigDecimal open = parsePositiveDecimal(requiredValue(values, headerIndex, "open", lineNumber), "open", lineNumber);
-        BigDecimal high = parsePositiveDecimal(requiredValue(values, headerIndex, "high", lineNumber), "high", lineNumber);
-        BigDecimal low = parsePositiveDecimal(requiredValue(values, headerIndex, "low", lineNumber), "low", lineNumber);
-        BigDecimal close = parsePositiveDecimal(requiredValue(values, headerIndex, "close", lineNumber), "close", lineNumber);
-        long volume = parseNonNegativeLong(requiredValue(values, headerIndex, "volume", lineNumber), "volume", lineNumber);
+    private Integer resolveColumnIndex(String canonicalColumn, Map<String, Integer> headerIndex) {
+        List<String> aliases = COLUMN_ALIASES.getOrDefault(canonicalColumn, List.of(canonicalColumn));
+        for (String alias : aliases) {
+            Integer idx = headerIndex.get(alias.toLowerCase(Locale.ROOT));
+            if (idx != null) {
+                return idx;
+            }
+        }
+        return null;
+    }
+
+    private Candle parseCandleRow(List<String> values, Map<String, Integer> resolvedColumns, int lineNumber) {
+        LocalDateTime timestamp = parseTimestamp(requiredValue(values, resolvedColumns.get("timestamp"), "timestamp", lineNumber), lineNumber);
+        BigDecimal open = parsePositiveDecimal(requiredValue(values, resolvedColumns.get("open"), "open", lineNumber), "open", lineNumber);
+        BigDecimal high = parsePositiveDecimal(requiredValue(values, resolvedColumns.get("high"), "high", lineNumber), "high", lineNumber);
+        BigDecimal low = parsePositiveDecimal(requiredValue(values, resolvedColumns.get("low"), "low", lineNumber), "low", lineNumber);
+        BigDecimal close = parsePositiveDecimal(requiredValue(values, resolvedColumns.get("close"), "close", lineNumber), "close", lineNumber);
+        long volume = parseNonNegativeLong(requiredValue(values, resolvedColumns.get("volume"), "volume", lineNumber), "volume", lineNumber);
 
         Candle candle = new Candle(timestamp, open, high, low, close, volume);
         candleValidationService.validateCandle(candle, "CSV line " + lineNumber);
         return candle;
     }
 
-    private String requiredValue(List<String> values, Map<String, Integer> headerIndex, String columnName, int lineNumber) {
-        Integer index = headerIndex.get(columnName);
+    private String requiredValue(List<String> values, Integer index, String columnName, int lineNumber) {
         if (index == null || index >= values.size()) {
             throw new IllegalArgumentException("Missing value for '" + columnName + "' at CSV line " + lineNumber + ".");
         }
 
         String value = normalizeToken(values.get(index));
-        if (value.isBlank()) {
+        if (value.isBlank() || "null".equalsIgnoreCase(value) || "n/a".equalsIgnoreCase(value)) {
             throw new IllegalArgumentException("Blank value for '" + columnName + "' at CSV line " + lineNumber + ".");
         }
         return value;
@@ -149,8 +174,12 @@ public class CsvCandleService {
             try {
                 return LocalDateTime.parse(value, SPACE_SEPARATED_TIMESTAMP);
             } catch (DateTimeParseException exception) {
-                throw new IllegalArgumentException("Invalid timestamp format at CSV line " + lineNumber +
-                        ". Use ISO format like 2025-01-01T09:30:00.");
+                try {
+                    return LocalDate.parse(value).atTime(9, 30);
+                } catch (DateTimeParseException dateParseException) {
+                    throw new IllegalArgumentException("Invalid timestamp format at CSV line " + lineNumber +
+                            ". Use ISO datetime (2025-01-01T09:30:00) or date-only format (2025-01-01).");
+                }
             }
         }
     }

@@ -15,7 +15,7 @@
 <main class="layout">
   <section class="card controls">
     <h2>Backtest Controls</h2>
-    <p class="help-text">Load sample candles, tweak strategy/risk parameters, then run a simulation.</p>
+    <p class="help-text">Recommended workflow: upload a Yahoo Finance CSV directly, then run a simulation.</p>
 
     <div class="form-grid">
       <label for="symbol">Symbol</label>
@@ -43,8 +43,11 @@
     </div>
 
     <hr class="section-divider">
-    <h3>CSV Upload Mode</h3>
-    <p class="help-text">Upload a CSV with columns: timestamp,open,high,low,close,volume.</p>
+    <h3>CSV Upload Mode (Recommended)</h3>
+    <p class="help-text">
+      Works with both simulator-format CSV and raw Yahoo Finance exports
+      (Date,Open,High,Low,Close,Adj Close,Volume).
+    </p>
 
     <label for="csvFileInput">CSV File</label>
     <input id="csvFileInput" type="file" accept=".csv,text/csv">
@@ -63,8 +66,8 @@
     </div>
 
     <hr class="section-divider">
-    <h3>Market Data Mode</h3>
-    <p class="help-text">Fetch real historical candles by symbol and date range.</p>
+    <h3>Market Data Mode (Optional)</h3>
+    <p class="help-text">API-based fetch by symbol/date range. Requires provider API key and may have provider limits.</p>
 
     <label for="marketStartDate">Start Date</label>
     <input id="marketStartDate" type="date" value="2025-01-01">

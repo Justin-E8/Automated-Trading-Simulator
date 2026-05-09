@@ -23,6 +23,7 @@ This repository is designed to become a resume-quality software engineering proj
 
 - Run SMA crossover backtests through a REST endpoint
 - Run backtests from uploaded CSV files (no candle JSON editing required)
+- Accept raw Yahoo Finance CSV exports directly (no conversion script required)
 - Fetch real market candles by symbol/date range and run backtests without CSV upload
 - Simulate buy/sell execution with configurable fee basis points
 - Track:
@@ -112,12 +113,27 @@ From there you can:
 - fetch market candles by symbol/date range and run market-data backtests
 - inspect metrics, trades, equity curve, and raw JSON output
 
+### Recommended real-world stock workflow (no API key)
+
+1. Download historical CSV from Yahoo Finance (e.g., AAPL historical data page).
+2. In app UI, use **CSV Upload Mode (Recommended)**.
+3. Upload the raw Yahoo CSV directly.
+4. Click **Preview CSV** then **Run Backtest from CSV**.
+
+No conversion script is needed.
+
 ### CSV format for upload
 
 Required header columns:
 
 ```text
 timestamp,open,high,low,close,volume
+```
+
+Also accepted directly (Yahoo Finance export):
+
+```text
+Date,Open,High,Low,Close,Adj Close,Volume
 ```
 
 Validation enforced by backend:
@@ -138,6 +154,7 @@ Example row:
 - Current provider adapter: **Alpha Vantage** (daily interval `1d`)
 - Uses Alpha Vantage `TIME_SERIES_DAILY` CSV endpoint with `outputsize=compact` (standard/free API keys)
 - Compact mode generally returns recent ~100 trading days
+- Because third-party APIs can have limits, CSV upload is the most reliable default workflow.
 - Configure API key with env var:
   - `export ALPHA_VANTAGE_API_KEY=your_key_here`
 - Enter symbol + start/end date in UI and click:

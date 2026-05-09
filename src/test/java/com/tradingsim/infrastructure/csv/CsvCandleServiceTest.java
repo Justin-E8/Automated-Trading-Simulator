@@ -73,6 +73,23 @@ class CsvCandleServiceTest {
         assertThat(preview.maxClose().toPlainString()).isEqualTo("101.7");
     }
 
+    @Test
+    void parseCandles_yahooFinanceFormat_parsesWithoutConversion() {
+        MockMultipartFile file = csv("""
+                Date,Open,High,Low,Close,Adj Close,Volume
+                2025-01-02,100.00,101.40,99.80,100.70,100.70,1234500
+                2025-01-03,100.70,102.20,100.10,101.90,101.90,1333600
+                2025-01-06,101.90,103.00,101.20,102.60,102.60,1456700
+                """);
+
+        List<Candle> candles = service.parseCandles(file);
+
+        assertThat(candles).hasSize(3);
+        assertThat(candles.get(0).timestamp().toString()).isEqualTo("2025-01-02T09:30");
+        assertThat(candles.get(2).close().toPlainString()).isEqualTo("102.60");
+        assertThat(candles.get(2).volume()).isEqualTo(1456700);
+    }
+
     private MockMultipartFile csv(String content) {
         return new MockMultipartFile(
                 "file",
