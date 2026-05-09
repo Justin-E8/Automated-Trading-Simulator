@@ -3,6 +3,7 @@ const candlesInput = document.getElementById("candlesInput");
 const tradesTableBody = document.getElementById("tradesTableBody");
 const rawResponse = document.getElementById("rawResponse");
 const equityCanvas = document.getElementById("equityCanvas");
+const csvFileInput = document.getElementById("csvFileInput");
 
 function setStatus(message, isError = false) {
   statusMessage.textContent = message;
@@ -48,6 +49,39 @@ function buildRequestPayload() {
   };
 }
 
+function baseParameters() {
+  return {
+    symbol: document.getElementById("symbol").value.trim(),
+    initialCash: Number(document.getElementById("initialCash").value),
+    quantityPerTrade: Number(document.getElementById("quantityPerTrade").value),
+    feeBps: Number(document.getElementById("feeBps").value),
+    shortWindow: Number(document.getElementById("shortWindow").value),
+    longWindow: Number(document.getElementById("longWindow").value)
+  };
+}
+
+function selectedCsvFile() {
+  const file = csvFileInput.files && csvFileInput.files[0];
+  if (!file) {
+    throw new Error("Choose a CSV file first.");
+  }
+  return file;
+}
+
+function buildCsvFormData() {
+  const params = baseParameters();
+  const file = selectedCsvFile();
+  const formData = new FormData();
+  formData.append("file", file);
+  formData.append("symbol", params.symbol);
+  formData.append("initialCash", String(params.initialCash));
+  formData.append("quantityPerTrade", String(params.quantityPerTrade));
+  formData.append("feeBps", String(params.feeBps));
+  formData.append("shortWindow", String(params.shortWindow));
+  formData.append("longWindow", String(params.longWindow));
+  return formData;
+}
+
 async function runBacktest() {
   setStatus("Running backtest...");
   try {
@@ -70,6 +104,48 @@ async function runBacktest() {
   }
 }
 
+async function previewCsv() {
+  setStatus("Previewing CSV...");
+  try {
+    const file = selectedCsvFile();
+    const formData = new FormData();
+    formData.append("file", file);
+
+    const response = await fetch("/api/v1/simulations/csv/preview", {
+      method: "POST",
+      body: formData
+    });
+    const body = await response.json();
+    if (!response.ok) {
+      throw new Error(body.error || "CSV preview failed.");
+    }
+
+    renderCsvPreview(body);
+    setStatus("CSV preview ready.");
+  } catch (error) {
+    setStatus(error.message, true);
+  }
+}
+
+async function runCsvBacktest() {
+  setStatus("Running CSV backtest...");
+  try {
+    const response = await fetch("/api/v1/simulations/csv/backtest", {
+      method: "POST",
+      body: buildCsvFormData()
+    });
+    const body = await response.json();
+    if (!response.ok) {
+      throw new Error(body.error || "CSV backtest failed.");
+    }
+
+    renderResult(body);
+    setStatus("CSV backtest complete.");
+  } catch (error) {
+    setStatus(error.message, true);
+  }
+}
+
 function renderResult(result) {
   document.getElementById("metricStrategy").textContent = result.strategyName;
   document.getElementById("metricStartCash").textContent = `$${formatNumber(result.startingCash)}`;
@@ -83,6 +159,18 @@ function renderResult(result) {
   renderTrades(result.trades);
   renderEquityCurve(result.equityCurve);
   rawResponse.textContent = JSON.stringify(result, null, 2);
+}
+
+function renderCsvPreview(preview) {
+  document.getElementById("csvPreviewCount").textContent = String(preview.candleCount);
+  document.getElementById("csvPreviewStart").textContent = preview.startTimestamp;
+  document.getElementById("csvPreviewEnd").textContent = preview.endTimestamp;
+  document.getElementById("csvPreviewMinClose").textContent = formatNumber(preview.minClose, 4);
+  document.getElementById("csvPreviewMaxClose").textContent = formatNumber(preview.maxClose, 4);
+
+  if (Array.isArray(preview.sampleCandles) && preview.sampleCandles.length > 0) {
+    candlesInput.value = JSON.stringify(preview.sampleCandles, null, 2);
+  }
 }
 
 function renderTrades(trades) {
@@ -165,5 +253,7 @@ function renderEquityCurve(points) {
 
 document.getElementById("loadSampleButton").addEventListener("click", loadSampleCandles);
 document.getElementById("runBacktestButton").addEventListener("click", runBacktest);
+document.getElementById("previewCsvButton").addEventListener("click", previewCsv);
+document.getElementById("runCsvBacktestButton").addEventListener("click", runCsvBacktest);
 
 loadSampleCandles();

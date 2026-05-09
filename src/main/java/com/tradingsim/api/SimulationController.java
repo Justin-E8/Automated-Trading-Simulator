@@ -3,19 +3,28 @@ package com.tradingsim.api;
 import com.tradingsim.api.dto.BacktestRunRequest;
 import com.tradingsim.api.dto.BacktestRunResponse;
 import com.tradingsim.api.dto.CandleDto;
+import com.tradingsim.api.dto.CsvPreviewResponse;
 import com.tradingsim.application.SimulationService;
+import com.tradingsim.infrastructure.csv.CsvPreviewSummary;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.DecimalMin;
+import jakarta.validation.constraints.Min;
+import jakarta.validation.constraints.NotBlank;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.validation.annotation.Validated;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
 
 @RestController
+@Validated
 @RequestMapping("/api/v1/simulations")
 public class SimulationController {
 
@@ -28,6 +37,49 @@ public class SimulationController {
     @PostMapping("/backtest")
     public BacktestRunResponse runBacktest(@Valid @RequestBody BacktestRunRequest request) {
         return simulationService.runBacktest(request);
+    }
+
+    @PostMapping("/csv/preview")
+    public CsvPreviewResponse previewCsv(@RequestParam("file") MultipartFile file) {
+        CsvPreviewSummary preview = simulationService.previewCsv(file);
+        return new CsvPreviewResponse(
+                preview.candleCount(),
+                preview.startTimestamp(),
+                preview.endTimestamp(),
+                preview.minClose(),
+                preview.maxClose(),
+                preview.sampleCandles().stream()
+                        .map(candle -> new CandleDto(
+                                candle.timestamp(),
+                                candle.open(),
+                                candle.high(),
+                                candle.low(),
+                                candle.close(),
+                                candle.volume()
+                        ))
+                        .toList()
+        );
+    }
+
+    @PostMapping("/csv/backtest")
+    public BacktestRunResponse runBacktestFromCsv(
+            @RequestParam("file") MultipartFile file,
+            @RequestParam("symbol") @NotBlank String symbol,
+            @RequestParam("initialCash") @DecimalMin("100.00") BigDecimal initialCash,
+            @RequestParam("quantityPerTrade") @Min(1) long quantityPerTrade,
+            @RequestParam("feeBps") @DecimalMin("0.0") BigDecimal feeBps,
+            @RequestParam("shortWindow") @Min(2) int shortWindow,
+            @RequestParam("longWindow") @Min(3) int longWindow
+    ) {
+        return simulationService.runBacktestFromCsv(
+                file,
+                symbol,
+                initialCash,
+                quantityPerTrade,
+                feeBps,
+                shortWindow,
+                longWindow
+        );
     }
 
     @GetMapping("/sample-candles")

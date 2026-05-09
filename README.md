@@ -22,16 +22,19 @@ This repository is designed to become a resume-quality software engineering proj
 ## Current backend capabilities
 
 - Run SMA crossover backtests through a REST endpoint
+- Run backtests from uploaded CSV files (no candle JSON editing required)
 - Simulate buy/sell execution with configurable fee basis points
 - Track:
   - trade events
   - equity curve
   - summary metrics (return, drawdown, Sharpe, win rate)
-- Example sample-candle endpoint for fast testing
+- Preview uploaded candle datasets (row count and date/price range)
 
 ## API endpoints (initial)
 
 - `POST /api/v1/simulations/backtest`
+- `POST /api/v1/simulations/csv/preview`
+- `POST /api/v1/simulations/csv/backtest`
 - `GET /api/v1/simulations/sample-candles`
 
 ### Example request body (`POST /api/v1/simulations/backtest`)
@@ -101,16 +104,38 @@ From there you can:
 
 - load sample candles
 - adjust strategy parameters
-- run a backtest
+- run a JSON-based backtest
+- upload a CSV, preview candle stats, and run a CSV-based backtest
 - inspect metrics, trades, equity curve, and raw JSON output
+
+### CSV format for upload
+
+Required header columns:
+
+```text
+timestamp,open,high,low,close,volume
+```
+
+Validation enforced by backend:
+
+- timestamps must be strictly increasing
+- open/high/low/close must be positive decimals
+- volume must be non-negative
+- OHLC consistency checks are enforced (high/low vs open/close)
+
+Example row:
+
+```text
+2025-01-01T09:30:00,100.00,101.00,99.00,100.50,1000
+```
 
 ## Planned next steps
 
-1. CSV ingestion pipeline for historical candles
+1. Multi-strategy framework (add mean reversion strategy and strategy selector)
 2. Persist simulation runs/results in PostgreSQL
 3. Add risk controls (position sizing, stop loss, max drawdown guardrails)
-4. Add extra strategies (mean reversion, breakout)
-5. Add frontend dashboard (React + charting) once backend contracts stabilize
+4. Add richer analysis metrics and parameter sweeps
+5. Keep improving the lightweight UI before considering a heavier frontend stack
 
 ---
 

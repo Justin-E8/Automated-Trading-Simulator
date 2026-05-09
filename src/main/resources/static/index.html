@@ -42,6 +42,26 @@
       <button id="runBacktestButton" type="button">Run Backtest</button>
     </div>
 
+    <hr class="section-divider">
+    <h3>CSV Upload Mode</h3>
+    <p class="help-text">Upload a CSV with columns: timestamp,open,high,low,close,volume.</p>
+
+    <label for="csvFileInput">CSV File</label>
+    <input id="csvFileInput" type="file" accept=".csv,text/csv">
+
+    <div class="button-row">
+      <button id="previewCsvButton" type="button">Preview CSV</button>
+      <button id="runCsvBacktestButton" type="button">Run Backtest from CSV</button>
+    </div>
+
+    <div class="csv-preview">
+      <p><strong>Rows:</strong> <span id="csvPreviewCount">-</span></p>
+      <p><strong>Start:</strong> <span id="csvPreviewStart">-</span></p>
+      <p><strong>End:</strong> <span id="csvPreviewEnd">-</span></p>
+      <p><strong>Min Close:</strong> <span id="csvPreviewMinClose">-</span></p>
+      <p><strong>Max Close:</strong> <span id="csvPreviewMaxClose">-</span></p>
+    </div>
+
     <label for="candlesInput">Candles JSON</label>
     <textarea id="candlesInput" rows="12" spellcheck="false"></textarea>
     <p id="statusMessage" class="status">Ready.</p>
