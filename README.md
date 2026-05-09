@@ -59,6 +59,18 @@ This repository is designed to become a resume-quality software engineering proj
 
 No global Maven install is required; use the included Maven Wrapper.
 
+### VS Code quick start
+
+1. Install VS Code extensions from recommended list (`.vscode/extensions.json`):
+   - Extension Pack for Java
+   - Maven for Java
+   - Spring Boot Extension Pack
+2. Open this repository folder in VS Code.
+3. Wait for Java project import/indexing to finish.
+4. Use one of these options to run:
+   - Run task: `Terminal` -> `Run Task` -> `mvnw: spring-boot:run`
+   - Debug launch: `Run and Debug` -> `Debug TradingSimulatorApplication`
+
 ### 1) Start the API
 
 ```bash
@@ -69,6 +81,14 @@ No global Maven install is required; use the included Maven Wrapper.
 
 ```bash
 ./mvnw test
+```
+
+### 3) Quick API check
+
+With the app running, verify sample data endpoint:
+
+```bash
+curl http://localhost:8080/api/v1/simulations/sample-candles
 ```
 
 ## Planned next steps

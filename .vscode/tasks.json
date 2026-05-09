@@ -1,0 +1,19 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "mvnw: test",
+      "type": "shell",
+      "command": "./mvnw test",
+      "group": "test",
+      "problemMatcher": []
+    },
+    {
+      "label": "mvnw: spring-boot:run",
+      "type": "shell",
+      "command": "./mvnw spring-boot:run",
+      "group": "build",
+      "problemMatcher": []
+    }
+  ]
+}
