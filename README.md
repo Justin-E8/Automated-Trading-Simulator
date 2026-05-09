@@ -91,6 +91,19 @@ With the app running, verify sample data endpoint:
 curl http://localhost:8080/api/v1/simulations/sample-candles
 ```
 
+### 4) Use the built-in simulator UI
+
+Once the app is running, open:
+
+- `http://localhost:8080`
+
+From there you can:
+
+- load sample candles
+- adjust strategy parameters
+- run a backtest
+- inspect metrics, trades, equity curve, and raw JSON output
+
 ## Planned next steps
 
 1. CSV ingestion pipeline for historical candles

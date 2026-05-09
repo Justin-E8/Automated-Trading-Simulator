@@ -1,0 +1,116 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Automated Trading Simulator</title>
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+<header class="page-header">
+  <h1>Automated Trading Simulator</h1>
+  <p class="subtitle">Backend-first simulation UI for understanding strategy behavior.</p>
+</header>
+
+<main class="layout">
+  <section class="card controls">
+    <h2>Backtest Controls</h2>
+    <p class="help-text">Load sample candles, tweak strategy/risk parameters, then run a simulation.</p>
+
+    <div class="form-grid">
+      <label for="symbol">Symbol</label>
+      <input id="symbol" type="text" value="AAPL">
+
+      <label for="initialCash">Initial Cash</label>
+      <input id="initialCash" type="number" step="0.01" value="10000">
+
+      <label for="quantityPerTrade">Quantity Per Trade</label>
+      <input id="quantityPerTrade" type="number" step="1" min="1" value="10">
+
+      <label for="feeBps">Fee (bps)</label>
+      <input id="feeBps" type="number" step="0.1" min="0" value="5.0">
+
+      <label for="shortWindow">Short SMA Window</label>
+      <input id="shortWindow" type="number" step="1" min="2" value="3">
+
+      <label for="longWindow">Long SMA Window</label>
+      <input id="longWindow" type="number" step="1" min="3" value="5">
+    </div>
+
+    <div class="button-row">
+      <button id="loadSampleButton" type="button">Load Sample Candles</button>
+      <button id="runBacktestButton" type="button">Run Backtest</button>
+    </div>
+
+    <label for="candlesInput">Candles JSON</label>
+    <textarea id="candlesInput" rows="12" spellcheck="false"></textarea>
+    <p id="statusMessage" class="status">Ready.</p>
+  </section>
+
+  <section class="card results">
+    <h2>Simulation Results</h2>
+    <p class="help-text">This shows what the engine did with your inputs and strategy settings.</p>
+
+    <div class="metrics-grid">
+      <div class="metric">
+        <span class="metric-label">Strategy</span>
+        <span id="metricStrategy" class="metric-value">-</span>
+      </div>
+      <div class="metric">
+        <span class="metric-label">Start Cash</span>
+        <span id="metricStartCash" class="metric-value">-</span>
+      </div>
+      <div class="metric">
+        <span class="metric-label">End Equity</span>
+        <span id="metricEndEquity" class="metric-value">-</span>
+      </div>
+      <div class="metric">
+        <span class="metric-label">Total Return %</span>
+        <span id="metricTotalReturn" class="metric-value">-</span>
+      </div>
+      <div class="metric">
+        <span class="metric-label">Max Drawdown %</span>
+        <span id="metricMaxDrawdown" class="metric-value">-</span>
+      </div>
+      <div class="metric">
+        <span class="metric-label">Sharpe Ratio</span>
+        <span id="metricSharpe" class="metric-value">-</span>
+      </div>
+      <div class="metric">
+        <span class="metric-label">Win Rate %</span>
+        <span id="metricWinRate" class="metric-value">-</span>
+      </div>
+      <div class="metric">
+        <span class="metric-label">Trade Count</span>
+        <span id="metricTradeCount" class="metric-value">-</span>
+      </div>
+    </div>
+
+    <h3>Equity Curve</h3>
+    <canvas id="equityCanvas" width="860" height="280"></canvas>
+
+    <h3>Trades</h3>
+    <table>
+      <thead>
+      <tr>
+        <th>Timestamp</th>
+        <th>Side</th>
+        <th>Qty</th>
+        <th>Price</th>
+        <th>Fee</th>
+        <th>Realized PnL</th>
+      </tr>
+      </thead>
+      <tbody id="tradesTableBody">
+      <tr><td colspan="6">No trades yet.</td></tr>
+      </tbody>
+    </table>
+
+    <h3>Raw JSON</h3>
+    <pre id="rawResponse">Run a backtest to view JSON output.</pre>
+  </section>
+</main>
+
+<script src="/app.js"></script>
+</body>
+</html>
