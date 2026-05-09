@@ -136,6 +136,7 @@ Example row:
 ### Market data mode notes
 
 - Current provider adapter: **Alpha Vantage** (daily interval `1d`)
+- Uses Alpha Vantage `TIME_SERIES_DAILY` CSV endpoint (intended for standard/free API keys)
 - Configure API key with env var:
   - `export ALPHA_VANTAGE_API_KEY=your_key_here`
 - Enter symbol + start/end date in UI and click:

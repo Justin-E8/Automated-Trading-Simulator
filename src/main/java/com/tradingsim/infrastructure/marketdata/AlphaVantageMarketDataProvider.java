@@ -28,7 +28,7 @@ public class AlphaVantageMarketDataProvider implements MarketDataProvider {
     private static final String PROVIDER_NAME = "alphavantage";
     private static final String SUPPORTED_INTERVAL = "1d";
     private static final String BASE_URL =
-            "https://www.alphavantage.co/query?function=TIME_SERIES_DAILY_ADJUSTED&symbol=%s&outputsize=full&datatype=csv&apikey=%s";
+            "https://www.alphavantage.co/query?function=TIME_SERIES_DAILY&symbol=%s&outputsize=full&datatype=csv&apikey=%s";
 
     private final HttpClient httpClient = HttpClient.newBuilder()
             .connectTimeout(Duration.ofSeconds(12))
@@ -122,8 +122,14 @@ public class AlphaVantageMarketDataProvider implements MarketDataProvider {
         if (lines.length <= 1) {
             throw new IllegalArgumentException("Market data provider returned empty CSV content.");
         }
-        if (!lines[0].toLowerCase(Locale.ROOT).startsWith("timestamp,open,high,low,close")) {
+        String header = lines[0].toLowerCase(Locale.ROOT);
+        if (!header.startsWith("timestamp,open,high,low,close")) {
             throw new IllegalArgumentException("Unexpected market data CSV format from provider.");
+        }
+        String[] headerParts = lines[0].split(",", -1);
+        int volumeIndex = findVolumeIndex(headerParts);
+        if (volumeIndex < 0) {
+            throw new IllegalArgumentException("Market data CSV is missing required 'volume' column.");
         }
 
         List<Candle> candles = new ArrayList<>();
@@ -134,7 +140,7 @@ public class AlphaVantageMarketDataProvider implements MarketDataProvider {
             }
 
             String[] parts = line.split(",", -1);
-            if (parts.length < 7) {
+            if (parts.length <= volumeIndex) {
                 continue;
             }
 
@@ -147,11 +153,20 @@ public class AlphaVantageMarketDataProvider implements MarketDataProvider {
             BigDecimal high = new BigDecimal(parts[2].trim());
             BigDecimal low = new BigDecimal(parts[3].trim());
             BigDecimal close = new BigDecimal(parts[4].trim());
-            long volume = Long.parseLong(parts[6].trim());
+            long volume = Long.parseLong(parts[volumeIndex].trim());
 
             LocalDateTime timestamp = date.atTime(9, 30);
             candles.add(new Candle(timestamp, open, high, low, close, volume));
         }
         return candles;
+    }
+
+    private int findVolumeIndex(String[] headerParts) {
+        for (int i = 0; i < headerParts.length; i++) {
+            if ("volume".equalsIgnoreCase(headerParts[i].trim())) {
+                return i;
+            }
+        }
+        return -1;
     }
 }
