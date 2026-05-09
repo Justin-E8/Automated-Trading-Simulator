@@ -15,5 +15,6 @@ server:
   port: 8080
 
 market-data:
-  stooq:
-    api-key: ${STOOQ_API_KEY:}
+  default-provider: alphavantage
+  alphavantage:
+    api-key: ${ALPHA_VANTAGE_API_KEY:}

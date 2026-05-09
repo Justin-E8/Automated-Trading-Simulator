@@ -135,9 +135,9 @@ Example row:
 
 ### Market data mode notes
 
-- Current provider adapter: **Stooq** (daily interval `1d`)
-- Stooq currently requires an API key. Configure it with env var:
-  - `export STOOQ_API_KEY=your_key_here`
+- Current provider adapter: **Alpha Vantage** (daily interval `1d`)
+- Configure API key with env var:
+  - `export ALPHA_VANTAGE_API_KEY=your_key_here`
 - Enter symbol + start/end date in UI and click:
   - `Fetch Market Data` (preview stats/sample candles)
   - `Run Backtest from Market Data`

@@ -2,6 +2,7 @@ package com.tradingsim.infrastructure.marketdata;
 
 import com.tradingsim.application.CandleValidationService;
 import com.tradingsim.domain.Candle;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import java.time.Duration;
@@ -14,23 +15,29 @@ import java.util.concurrent.ConcurrentHashMap;
 @Service
 public class MarketDataService {
 
-    private static final String DEFAULT_PROVIDER = "stooq";
+    private static final String FALLBACK_PROVIDER = "alphavantage";
     private static final Duration CACHE_TTL = Duration.ofHours(6);
 
     private final CandleValidationService candleValidationService;
+    private final String defaultProvider;
     private final Map<String, MarketDataProvider> providersByName;
     private final ConcurrentHashMap<CacheKey, CacheEntry> cache = new ConcurrentHashMap<>();
 
-    public MarketDataService(List<MarketDataProvider> providers, CandleValidationService candleValidationService) {
+    public MarketDataService(
+            List<MarketDataProvider> providers,
+            CandleValidationService candleValidationService,
+            @Value("${market-data.default-provider:" + FALLBACK_PROVIDER + "}") String defaultProvider
+    ) {
         this.candleValidationService = candleValidationService;
+        this.defaultProvider = defaultProvider.trim().toLowerCase();
         this.providersByName = providers.stream()
                 .collect(java.util.stream.Collectors.toMap(
                         provider -> provider.providerName().toLowerCase(),
                         provider -> provider
                 ));
 
-        if (!providersByName.containsKey(DEFAULT_PROVIDER)) {
-            throw new IllegalStateException("Default market data provider '" + DEFAULT_PROVIDER + "' not configured.");
+        if (!providersByName.containsKey(this.defaultProvider)) {
+            throw new IllegalStateException("Default market data provider '" + this.defaultProvider + "' not configured.");
         }
     }
 
@@ -43,7 +50,7 @@ public class MarketDataService {
             return new MarketDataFetchResult(symbol.trim().toUpperCase(), interval, cached.providerName(), true, cached.candles());
         }
 
-        MarketDataProvider provider = providersByName.get(DEFAULT_PROVIDER);
+        MarketDataProvider provider = providersByName.get(defaultProvider);
         List<Candle> candles = provider.fetchCandles(symbol, startDate, endDate, interval);
 
         for (int i = 0; i < candles.size(); i++) {

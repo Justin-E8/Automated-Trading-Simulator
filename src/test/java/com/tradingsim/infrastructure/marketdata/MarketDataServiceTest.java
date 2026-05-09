@@ -18,7 +18,7 @@ class MarketDataServiceTest {
     @Test
     void fetchCandles_usesCacheForSameRequest() {
         FakeProvider provider = new FakeProvider(validCandles());
-        MarketDataService service = new MarketDataService(List.of(provider), new CandleValidationService());
+        MarketDataService service = new MarketDataService(List.of(provider), new CandleValidationService(), "alphavantage");
 
         MarketDataFetchResult first = service.fetchCandles("AAPL", date("2025-01-01"), date("2025-01-04"), "1d");
         MarketDataFetchResult second = service.fetchCandles("AAPL", date("2025-01-01"), date("2025-01-04"), "1d");
@@ -35,7 +35,7 @@ class MarketDataServiceTest {
         invalid.add(candle("2025-01-01T09:30:00", "100", "101", "99", "100.2", 1000));
 
         FakeProvider provider = new FakeProvider(invalid);
-        MarketDataService service = new MarketDataService(List.of(provider), new CandleValidationService());
+        MarketDataService service = new MarketDataService(List.of(provider), new CandleValidationService(), "alphavantage");
 
         assertThatThrownBy(() -> service.fetchCandles("AAPL", date("2025-01-01"), date("2025-01-02"), "1d"))
                 .isInstanceOf(IllegalArgumentException.class)
@@ -76,7 +76,7 @@ class MarketDataServiceTest {
 
         @Override
         public String providerName() {
-            return "stooq";
+            return "alphavantage";
         }
 
         @Override

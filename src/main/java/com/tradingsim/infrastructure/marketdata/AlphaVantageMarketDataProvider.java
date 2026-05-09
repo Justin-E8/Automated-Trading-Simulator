@@ -21,18 +21,19 @@ import java.util.List;
 import java.util.Locale;
 
 @Component
-public class StooqMarketDataProvider implements MarketDataProvider {
+public class AlphaVantageMarketDataProvider implements MarketDataProvider {
 
-    private static final String PROVIDER_NAME = "stooq";
-    private static final String BASE_URL = "https://stooq.com/q/d/l/?s=%s&i=d";
+    private static final String PROVIDER_NAME = "alphavantage";
     private static final String SUPPORTED_INTERVAL = "1d";
+    private static final String BASE_URL =
+            "https://www.alphavantage.co/query?function=TIME_SERIES_DAILY_ADJUSTED&symbol=%s&outputsize=full&datatype=csv&apikey=%s";
 
     private final HttpClient httpClient = HttpClient.newBuilder()
             .connectTimeout(Duration.ofSeconds(12))
             .build();
     private final String apiKey;
 
-    public StooqMarketDataProvider(@Value("${market-data.stooq.api-key:}") String apiKey) {
+    public AlphaVantageMarketDataProvider(@Value("${market-data.alphavantage.api-key:}") String apiKey) {
         this.apiKey = apiKey;
     }
 
@@ -44,18 +45,25 @@ public class StooqMarketDataProvider implements MarketDataProvider {
     @Override
     public List<Candle> fetchCandles(String symbol, LocalDate startDate, LocalDate endDate, String interval) {
         if (!SUPPORTED_INTERVAL.equalsIgnoreCase(interval)) {
-            throw new IllegalArgumentException("Stooq provider currently supports only interval '1d'.");
+            throw new IllegalArgumentException("Alpha Vantage currently supports only interval '1d'.");
+        }
+        if (apiKey.isBlank()) {
+            throw new IllegalArgumentException(
+                    "Alpha Vantage API key is required. Set 'market-data.alphavantage.api-key' (or ALPHA_VANTAGE_API_KEY env var)."
+            );
         }
 
-        String resolvedSymbol = resolveSymbol(symbol);
-        String encodedSymbol = URLEncoder.encode(resolvedSymbol, StandardCharsets.UTF_8);
-        String url = String.format(BASE_URL, encodedSymbol);
-        if (!apiKey.isBlank()) {
-            url = url + "&apikey=" + URLEncoder.encode(apiKey, StandardCharsets.UTF_8);
+        String cleanedSymbol = symbol.trim().toUpperCase(Locale.ROOT);
+        if (cleanedSymbol.isBlank()) {
+            throw new IllegalArgumentException("Symbol is required for market data fetch.");
         }
 
-        String csvContent = downloadCsv(url);
-        List<Candle> candles = parseCsv(csvContent, startDate, endDate);
+        String encodedSymbol = URLEncoder.encode(cleanedSymbol, StandardCharsets.UTF_8);
+        String encodedKey = URLEncoder.encode(apiKey, StandardCharsets.UTF_8);
+        String url = String.format(BASE_URL, encodedSymbol, encodedKey);
+
+        String body = downloadCsv(url);
+        List<Candle> candles = parseCsv(body, startDate, endDate);
 
         if (candles.isEmpty()) {
             throw new IllegalArgumentException("No market data found for symbol '" + symbol
@@ -79,10 +87,14 @@ public class StooqMarketDataProvider implements MarketDataProvider {
                 throw new IllegalArgumentException("Market data provider returned status " + response.statusCode() + ".");
             }
             String body = response.body();
-            if (body.toLowerCase(Locale.ROOT).contains("get_apikey")) {
-                throw new IllegalArgumentException(
-                        "Stooq requires an API key. Set 'market-data.stooq.api-key' (or STOOQ_API_KEY env var)."
-                );
+            if (body.trim().startsWith("{")) {
+                if (body.contains("\"Note\"")) {
+                    throw new IllegalArgumentException("Alpha Vantage rate limit reached. Please wait and retry.");
+                }
+                if (body.contains("\"Error Message\"")) {
+                    throw new IllegalArgumentException("Alpha Vantage rejected request. Check symbol and API key.");
+                }
+                throw new IllegalArgumentException("Unexpected response from Alpha Vantage.");
             }
             return body;
         } catch (IOException exception) {
@@ -98,7 +110,7 @@ public class StooqMarketDataProvider implements MarketDataProvider {
         if (lines.length <= 1) {
             throw new IllegalArgumentException("Market data provider returned empty CSV content.");
         }
-        if (!lines[0].trim().equalsIgnoreCase("Date,Open,High,Low,Close,Volume")) {
+        if (!lines[0].toLowerCase(Locale.ROOT).startsWith("timestamp,open,high,low,close")) {
             throw new IllegalArgumentException("Unexpected market data CSV format from provider.");
         }
 
@@ -110,10 +122,7 @@ public class StooqMarketDataProvider implements MarketDataProvider {
             }
 
             String[] parts = line.split(",", -1);
-            if (parts.length < 6) {
-                continue;
-            }
-            if (containsUnavailableValues(parts)) {
+            if (parts.length < 7) {
                 continue;
             }
 
@@ -126,30 +135,11 @@ public class StooqMarketDataProvider implements MarketDataProvider {
             BigDecimal high = new BigDecimal(parts[2].trim());
             BigDecimal low = new BigDecimal(parts[3].trim());
             BigDecimal close = new BigDecimal(parts[4].trim());
-            long volume = Long.parseLong(parts[5].trim());
+            long volume = Long.parseLong(parts[6].trim());
 
             LocalDateTime timestamp = date.atTime(9, 30);
             candles.add(new Candle(timestamp, open, high, low, close, volume));
         }
-
         return candles;
-    }
-
-    private boolean containsUnavailableValues(String[] parts) {
-        for (String part : parts) {
-            String normalized = part.trim().toUpperCase(Locale.ROOT);
-            if ("N/D".equals(normalized)) {
-                return true;
-            }
-        }
-        return false;
-    }
-
-    private String resolveSymbol(String symbol) {
-        String normalized = symbol.trim().toLowerCase(Locale.ROOT);
-        if (normalized.isEmpty()) {
-            throw new IllegalArgumentException("Symbol is required for market data fetch.");
-        }
-        return normalized.contains(".") ? normalized : normalized + ".us";
     }
 }
