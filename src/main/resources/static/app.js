@@ -4,10 +4,34 @@ const tradesTableBody = document.getElementById("tradesTableBody");
 const equityCanvas = document.getElementById("equityCanvas");
 const csvFileInput = document.getElementById("csvFileInput");
 
+function ensureElement(element, name) {
+  if (!element) {
+    throw new Error(`UI setup error: missing element '${name}'. Refresh the page and try again.`);
+  }
+  return element;
+}
+
+function parseJsonOrThrow(text, fallbackMessage) {
+  if (!text) {
+    return {};
+  }
+  try {
+    return JSON.parse(text);
+  } catch (error) {
+    throw new Error(fallbackMessage);
+  }
+}
+
+async function readResponseBody(response, fallbackMessage) {
+  const text = await response.text();
+  return parseJsonOrThrow(text, fallbackMessage);
+}
+
 function setStatus(message, type = "info") {
-  statusMessage.textContent = message;
-  statusMessage.classList.remove("status-info", "status-success", "status-error");
-  statusMessage.classList.add(`status-${type}`);
+  const banner = ensureElement(statusMessage, "statusMessage");
+  banner.textContent = message;
+  banner.classList.remove("status-info", "status-success", "status-error");
+  banner.classList.add(`status-${type}`);
 }
 
 function formatNumber(value, digits = 2) {
@@ -29,7 +53,8 @@ function baseParameters() {
 }
 
 function selectedCsvFile() {
-  const file = csvFileInput.files && csvFileInput.files[0];
+  const fileInput = ensureElement(csvFileInput, "csvFileInput");
+  const file = fileInput.files && fileInput.files[0];
   if (!file) {
     throw new Error("Choose a CSV file first.");
   }
@@ -51,7 +76,7 @@ function buildCsvFormData() {
 
 function initializeCsvPreview() {
   // CSV-only workflow no longer preloads sample JSON.
-  candlesInput.value = "Upload a CSV and click Preview CSV.";
+  ensureElement(candlesInput, "candlesInput").value = "Upload a CSV and click Preview CSV.";
 }
 
 async function previewCsv() {
@@ -63,7 +88,7 @@ async function previewCsv() {
       method: "POST",
       body: formData
     });
-    const body = await response.json();
+    const body = await readResponseBody(response, "Server returned invalid preview response.");
     if (!response.ok) {
       throw new Error(body.error || "CSV preview failed.");
     }
@@ -82,7 +107,7 @@ async function runCsvBacktest() {
       method: "POST",
       body: buildCsvFormData()
     });
-    const body = await response.json();
+    const body = await readResponseBody(response, "Server returned invalid backtest response.");
     if (!response.ok) {
       throw new Error(body.error || "CSV backtest failed.");
     }
@@ -122,11 +147,11 @@ function renderCsvPreview(preview) {
 
 function renderTrades(trades) {
   if (!Array.isArray(trades) || trades.length === 0) {
-    tradesTableBody.innerHTML = "<tr><td colspan=\"6\">No trades generated.</td></tr>";
+    ensureElement(tradesTableBody, "tradesTableBody").innerHTML = "<tr><td colspan=\"6\">No trades generated.</td></tr>";
     return;
   }
 
-  tradesTableBody.innerHTML = "";
+  ensureElement(tradesTableBody, "tradesTableBody").innerHTML = "";
   trades.forEach((trade) => {
     const row = document.createElement("tr");
     row.innerHTML = `
@@ -137,14 +162,15 @@ function renderTrades(trades) {
       <td>${formatNumber(trade.fee, 4)}</td>
       <td>${formatNumber(trade.realizedPnl, 4)}</td>
     `;
-    tradesTableBody.appendChild(row);
+    ensureElement(tradesTableBody, "tradesTableBody").appendChild(row);
   });
 }
 
 function renderEquityCurve(points) {
-  const ctx = equityCanvas.getContext("2d");
-  const width = equityCanvas.width;
-  const height = equityCanvas.height;
+  const canvas = ensureElement(equityCanvas, "equityCanvas");
+  const ctx = canvas.getContext("2d");
+  const width = canvas.width;
+  const height = canvas.height;
 
   ctx.clearRect(0, 0, width, height);
   ctx.fillStyle = "#ffffff";
@@ -200,5 +226,13 @@ function renderEquityCurve(points) {
 
 document.getElementById("previewCsvButton").addEventListener("click", previewCsv);
 document.getElementById("runCsvBacktestButton").addEventListener("click", runCsvBacktest);
+ensureElement(csvFileInput, "csvFileInput").addEventListener("change", () => {
+  try {
+    const file = selectedCsvFile();
+    setStatus(`Selected CSV: ${file.name}`, "info");
+  } catch (error) {
+    setStatus("Choose a CSV file first.", "error");
+  }
+});
 
 initializeCsvPreview();
