@@ -4,6 +4,9 @@ const tradesTableBody = document.getElementById("tradesTableBody");
 const rawResponse = document.getElementById("rawResponse");
 const equityCanvas = document.getElementById("equityCanvas");
 const csvFileInput = document.getElementById("csvFileInput");
+const marketStartDateInput = document.getElementById("marketStartDate");
+const marketEndDateInput = document.getElementById("marketEndDate");
+const marketIntervalInput = document.getElementById("marketInterval");
 
 function setStatus(message, isError = false) {
   statusMessage.textContent = message;
@@ -60,6 +63,15 @@ function baseParameters() {
   };
 }
 
+function marketDataParameters() {
+  return {
+    symbol: document.getElementById("symbol").value.trim(),
+    startDate: marketStartDateInput.value,
+    endDate: marketEndDateInput.value,
+    interval: marketIntervalInput.value
+  };
+}
+
 function selectedCsvFile() {
   const file = csvFileInput.files && csvFileInput.files[0];
   if (!file) {
@@ -80,6 +92,14 @@ function buildCsvFormData() {
   formData.append("shortWindow", String(params.shortWindow));
   formData.append("longWindow", String(params.longWindow));
   return formData;
+}
+
+function updateMarketPreview(response) {
+  document.getElementById("marketProvider").textContent = response.provider;
+  document.getElementById("marketCached").textContent = response.cached ? "Yes" : "No";
+  document.getElementById("marketCount").textContent = String(response.candleCount);
+  document.getElementById("marketStart").textContent = response.startTimestamp;
+  document.getElementById("marketEnd").textContent = response.endTimestamp;
 }
 
 async function runBacktest() {
@@ -141,6 +161,55 @@ async function runCsvBacktest() {
 
     renderResult(body);
     setStatus("CSV backtest complete.");
+  } catch (error) {
+    setStatus(error.message, true);
+  }
+}
+
+async function fetchMarketData() {
+  setStatus("Fetching market data...");
+  try {
+    const response = await fetch("/api/v1/simulations/market-data/fetch", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(marketDataParameters())
+    });
+    const body = await response.json();
+    if (!response.ok) {
+      throw new Error(body.error || "Market data fetch failed.");
+    }
+
+    updateMarketPreview(body);
+    if (Array.isArray(body.sampleCandles) && body.sampleCandles.length > 0) {
+      candlesInput.value = JSON.stringify(body.sampleCandles, null, 2);
+    }
+    rawResponse.textContent = JSON.stringify(body, null, 2);
+    setStatus("Market data fetched successfully.");
+  } catch (error) {
+    setStatus(error.message, true);
+  }
+}
+
+async function runMarketBacktest() {
+  setStatus("Running market data backtest...");
+  try {
+    const payload = {
+      ...baseParameters(),
+      ...marketDataParameters()
+    };
+
+    const response = await fetch("/api/v1/simulations/market-data/backtest", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload)
+    });
+    const body = await response.json();
+    if (!response.ok) {
+      throw new Error(body.error || "Market-data backtest failed.");
+    }
+
+    renderResult(body);
+    setStatus("Market-data backtest complete.");
   } catch (error) {
     setStatus(error.message, true);
   }
@@ -255,5 +324,7 @@ document.getElementById("loadSampleButton").addEventListener("click", loadSample
 document.getElementById("runBacktestButton").addEventListener("click", runBacktest);
 document.getElementById("previewCsvButton").addEventListener("click", previewCsv);
 document.getElementById("runCsvBacktestButton").addEventListener("click", runCsvBacktest);
+document.getElementById("fetchMarketDataButton").addEventListener("click", fetchMarketData);
+document.getElementById("runMarketBacktestButton").addEventListener("click", runMarketBacktest);
 
 loadSampleCandles();

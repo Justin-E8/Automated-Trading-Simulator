@@ -23,6 +23,7 @@ This repository is designed to become a resume-quality software engineering proj
 
 - Run SMA crossover backtests through a REST endpoint
 - Run backtests from uploaded CSV files (no candle JSON editing required)
+- Fetch real market candles by symbol/date range and run backtests without CSV upload
 - Simulate buy/sell execution with configurable fee basis points
 - Track:
   - trade events
@@ -35,6 +36,8 @@ This repository is designed to become a resume-quality software engineering proj
 - `POST /api/v1/simulations/backtest`
 - `POST /api/v1/simulations/csv/preview`
 - `POST /api/v1/simulations/csv/backtest`
+- `POST /api/v1/simulations/market-data/fetch`
+- `POST /api/v1/simulations/market-data/backtest`
 - `GET /api/v1/simulations/sample-candles`
 
 ### Example request body (`POST /api/v1/simulations/backtest`)
@@ -106,6 +109,7 @@ From there you can:
 - adjust strategy parameters
 - run a JSON-based backtest
 - upload a CSV, preview candle stats, and run a CSV-based backtest
+- fetch market candles by symbol/date range and run market-data backtests
 - inspect metrics, trades, equity curve, and raw JSON output
 
 ### CSV format for upload
@@ -129,13 +133,22 @@ Example row:
 2025-01-01T09:30:00,100.00,101.00,99.00,100.50,1000
 ```
 
+### Market data mode notes
+
+- Current provider adapter: **Stooq** (daily interval `1d`)
+- Enter symbol + start/end date in UI and click:
+  - `Fetch Market Data` (preview stats/sample candles)
+  - `Run Backtest from Market Data`
+- Provider responses are normalized and validated with the same candle rules as CSV ingestion.
+- Fetched datasets are cached in-memory for repeated same-range requests.
+
 ## Planned next steps
 
-1. Market data provider integration (fetch candles by symbol/date range in addition to CSV upload)
-2. Multi-strategy framework (add mean reversion strategy and strategy selector)
-3. Persist simulation runs/results in PostgreSQL
-4. Add risk controls (position sizing, stop loss, max drawdown guardrails)
-5. Add richer analysis metrics and parameter sweeps
+1. Multi-strategy framework (add mean reversion strategy and strategy selector)
+2. Persist simulation runs/results in PostgreSQL
+3. Add risk controls (position sizing, stop loss, max drawdown guardrails)
+4. Add richer analysis metrics and parameter sweeps
+5. Add additional market data providers beyond initial adapter
 6. Keep improving the lightweight UI before considering a heavier frontend stack
 
 ---

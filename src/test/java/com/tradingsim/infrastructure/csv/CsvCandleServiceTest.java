@@ -1,5 +1,6 @@
 package com.tradingsim.infrastructure.csv;
 
+import com.tradingsim.application.CandleValidationService;
 import com.tradingsim.domain.Candle;
 import org.junit.jupiter.api.Test;
 import org.springframework.mock.web.MockMultipartFile;
@@ -11,7 +12,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 class CsvCandleServiceTest {
 
-    private final CsvCandleService service = new CsvCandleService();
+    private final CsvCandleService service = new CsvCandleService(new CandleValidationService());
 
     @Test
     void parseCandles_validCsv_returnsCandles() {

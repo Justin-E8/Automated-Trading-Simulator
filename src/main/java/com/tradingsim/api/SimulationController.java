@@ -4,8 +4,12 @@ import com.tradingsim.api.dto.BacktestRunRequest;
 import com.tradingsim.api.dto.BacktestRunResponse;
 import com.tradingsim.api.dto.CandleDto;
 import com.tradingsim.api.dto.CsvPreviewResponse;
+import com.tradingsim.api.dto.MarketDataBacktestRequest;
+import com.tradingsim.api.dto.MarketDataFetchRequest;
+import com.tradingsim.api.dto.MarketDataFetchResponse;
 import com.tradingsim.application.SimulationService;
 import com.tradingsim.infrastructure.csv.CsvPreviewSummary;
+import com.tradingsim.infrastructure.marketdata.MarketDataFetchResult;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.Min;
@@ -82,6 +86,22 @@ public class SimulationController {
         );
     }
 
+    @PostMapping("/market-data/fetch")
+    public MarketDataFetchResponse fetchMarketData(@Valid @RequestBody MarketDataFetchRequest request) {
+        MarketDataFetchResult result = simulationService.fetchMarketData(
+                request.symbol(),
+                request.startDate(),
+                request.endDate(),
+                request.interval()
+        );
+        return toMarketDataFetchResponse(result);
+    }
+
+    @PostMapping("/market-data/backtest")
+    public BacktestRunResponse runBacktestFromMarketData(@Valid @RequestBody MarketDataBacktestRequest request) {
+        return simulationService.runBacktestFromMarketData(request);
+    }
+
     @GetMapping("/sample-candles")
     public List<CandleDto> sampleCandles() {
         return List.of(
@@ -112,6 +132,31 @@ public class SimulationController {
                 closePrice,
                 closePrice,
                 1000
+        );
+    }
+
+    private MarketDataFetchResponse toMarketDataFetchResponse(MarketDataFetchResult result) {
+        List<CandleDto> sample = result.candles().stream()
+                .limit(5)
+                .map(candle -> new CandleDto(
+                        candle.timestamp(),
+                        candle.open(),
+                        candle.high(),
+                        candle.low(),
+                        candle.close(),
+                        candle.volume()
+                ))
+                .toList();
+
+        return new MarketDataFetchResponse(
+                result.symbol(),
+                result.interval(),
+                result.provider(),
+                result.cached(),
+                result.candles().size(),
+                result.candles().get(0).timestamp(),
+                result.candles().get(result.candles().size() - 1).timestamp(),
+                sample
         );
     }
 }

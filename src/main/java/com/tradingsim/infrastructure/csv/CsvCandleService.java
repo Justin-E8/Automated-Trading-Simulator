@@ -1,5 +1,6 @@
 package com.tradingsim.infrastructure.csv;
 
+import com.tradingsim.application.CandleValidationService;
 import com.tradingsim.domain.Candle;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
@@ -23,6 +24,11 @@ public class CsvCandleService {
 
     private static final List<String> REQUIRED_COLUMNS = List.of("timestamp", "open", "high", "low", "close", "volume");
     private static final DateTimeFormatter SPACE_SEPARATED_TIMESTAMP = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+    private final CandleValidationService candleValidationService;
+
+    public CsvCandleService(CandleValidationService candleValidationService) {
+        this.candleValidationService = candleValidationService;
+    }
 
     public List<Candle> parseCandles(MultipartFile file) {
         if (file == null || file.isEmpty()) {
@@ -42,7 +48,6 @@ public class CsvCandleService {
             List<Candle> candles = new ArrayList<>();
             String line;
             int lineNumber = 1;
-            LocalDateTime previousTimestamp = null;
 
             while ((line = reader.readLine()) != null) {
                 lineNumber++;
@@ -52,13 +57,6 @@ public class CsvCandleService {
 
                 List<String> values = splitCsvLine(line);
                 Candle candle = parseCandleRow(values, headerIndex, lineNumber);
-
-                if (previousTimestamp != null && !candle.timestamp().isAfter(previousTimestamp)) {
-                    throw new IllegalArgumentException("Invalid timestamp order at CSV line " + lineNumber +
-                            ". Timestamps must be strictly increasing.");
-                }
-
-                previousTimestamp = candle.timestamp();
                 candles.add(candle);
             }
 
@@ -66,6 +64,7 @@ public class CsvCandleService {
                 throw new IllegalArgumentException("CSV contains no candle rows.");
             }
 
+            candleValidationService.validateChronologicalOrder(candles, "CSV file");
             return candles;
         } catch (IOException exception) {
             throw new IllegalArgumentException("Failed to read CSV file: " + exception.getMessage());
@@ -125,14 +124,9 @@ public class CsvCandleService {
         BigDecimal close = parsePositiveDecimal(requiredValue(values, headerIndex, "close", lineNumber), "close", lineNumber);
         long volume = parseNonNegativeLong(requiredValue(values, headerIndex, "volume", lineNumber), "volume", lineNumber);
 
-        if (low.compareTo(high) > 0) {
-            throw new IllegalArgumentException("Invalid high/low values at CSV line " + lineNumber + ".");
-        }
-        if (high.compareTo(open.max(close)) < 0 || low.compareTo(open.min(close)) > 0) {
-            throw new IllegalArgumentException("OHLC consistency check failed at CSV line " + lineNumber + ".");
-        }
-
-        return new Candle(timestamp, open, high, low, close, volume);
+        Candle candle = new Candle(timestamp, open, high, low, close, volume);
+        candleValidationService.validateCandle(candle, "CSV line " + lineNumber);
+        return candle;
     }
 
     private String requiredValue(List<String> values, Map<String, Integer> headerIndex, String columnName, int lineNumber) {

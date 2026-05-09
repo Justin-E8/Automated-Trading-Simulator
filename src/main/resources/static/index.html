@@ -62,6 +62,34 @@
       <p><strong>Max Close:</strong> <span id="csvPreviewMaxClose">-</span></p>
     </div>
 
+    <hr class="section-divider">
+    <h3>Market Data Mode</h3>
+    <p class="help-text">Fetch real historical candles by symbol and date range.</p>
+
+    <label for="marketStartDate">Start Date</label>
+    <input id="marketStartDate" type="date" value="2025-01-01">
+
+    <label for="marketEndDate">End Date</label>
+    <input id="marketEndDate" type="date" value="2025-01-20">
+
+    <label for="marketInterval">Interval</label>
+    <select id="marketInterval">
+      <option value="1d" selected>1d (daily)</option>
+    </select>
+
+    <div class="button-row">
+      <button id="fetchMarketDataButton" type="button">Fetch Market Data</button>
+      <button id="runMarketBacktestButton" type="button">Run Backtest from Market Data</button>
+    </div>
+
+    <div class="csv-preview">
+      <p><strong>Provider:</strong> <span id="marketProvider">-</span></p>
+      <p><strong>Cached:</strong> <span id="marketCached">-</span></p>
+      <p><strong>Rows:</strong> <span id="marketCount">-</span></p>
+      <p><strong>Start:</strong> <span id="marketStart">-</span></p>
+      <p><strong>End:</strong> <span id="marketEnd">-</span></p>
+    </div>
+
     <label for="candlesInput">Candles JSON</label>
     <textarea id="candlesInput" rows="12" spellcheck="false"></textarea>
     <p id="statusMessage" class="status">Ready.</p>
