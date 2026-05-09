@@ -41,7 +41,12 @@ def parse_args() -> argparse.Namespace:
     )
     parser.add_argument(
         "--out",
-        help="Output CSV path. Default: <ticker>-<start>-<end>.csv",
+        help="Output CSV path. If set, this overrides --out-dir.",
+    )
+    parser.add_argument(
+        "--out-dir",
+        default="data/generated-csv",
+        help="Output directory for generated CSV files. Default: data/generated-csv",
     )
     return parser.parse_args()
 
@@ -66,6 +71,7 @@ def main() -> int:
 
     try:
         import yfinance as yf
+        import pandas as pd
     except ImportError:
         print(
             "Missing dependency: yfinance.\n"
@@ -79,7 +85,13 @@ def main() -> int:
         print("Error: ticker cannot be blank.", file=sys.stderr)
         return 2
 
-    output_path = Path(args.out) if args.out else Path(f"{ticker}-{args.start}-{args.end}.csv")
+    if args.out:
+        output_path = Path(args.out)
+    else:
+        out_dir = Path(args.out_dir)
+        output_path = out_dir / f"{ticker}-{args.start}-{args.end}.csv"
+
+    output_path.parent.mkdir(parents=True, exist_ok=True)
 
     df = yf.download(
         ticker,
@@ -88,6 +100,7 @@ def main() -> int:
         interval=args.interval,
         auto_adjust=False,
         progress=False,
+        group_by="column",
     )
 
     if df.empty:
@@ -97,8 +110,19 @@ def main() -> int:
         )
         return 1
 
+    if getattr(df.columns, "nlevels", 1) > 1:
+        # Newer yfinance may return MultiIndex columns like ('Close', 'AAPL').
+        df.columns = [col[0] if isinstance(col, tuple) else col for col in df.columns]
+
     df = df.reset_index()
+    if "Date" not in df.columns and "Datetime" in df.columns:
+        df = df.rename(columns={"Datetime": "Date"})
+    if "Date" in df.columns:
+        df["Date"] = pd.to_datetime(df["Date"], errors="coerce").dt.strftime("%Y-%m-%d")
+
     required_columns = ["Date", "Open", "High", "Low", "Close", "Adj Close", "Volume"]
+    if "Adj Close" not in df.columns and "Close" in df.columns:
+        df["Adj Close"] = df["Close"]
 
     missing = [column for column in required_columns if column not in df.columns]
     if missing:
@@ -109,6 +133,20 @@ def main() -> int:
         return 1
 
     df = df[required_columns]
+    df = df.dropna(subset=["Date", "Open", "High", "Low", "Close", "Adj Close", "Volume"])
+    if df.empty:
+        print("No valid rows remained after normalization.", file=sys.stderr)
+        return 1
+
+    for numeric_col in ["Open", "High", "Low", "Close", "Adj Close"]:
+        df[numeric_col] = pd.to_numeric(df[numeric_col], errors="coerce")
+    df["Volume"] = pd.to_numeric(df["Volume"], errors="coerce")
+    df = df.dropna(subset=["Open", "High", "Low", "Close", "Adj Close", "Volume"])
+    if df.empty:
+        print("No numeric rows remained after normalization.", file=sys.stderr)
+        return 1
+
+    df["Volume"] = df["Volume"].astype("int64")
     df.to_csv(output_path, index=False)
     print(f"Saved {len(df)} rows to {output_path}")
     return 0

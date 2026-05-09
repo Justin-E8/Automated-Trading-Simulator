@@ -130,10 +130,16 @@ If you prefer terminal-based download instead of web UI export, use:
 python3 scripts/fetch_yahoo_csv.py --ticker AAPL --start 2024-01-01 --end 2025-01-01 --interval 1d
 ```
 
-This creates a file like:
+By default this saves into:
 
 ```text
-AAPL-2024-01-01-2025-01-01.csv
+data/generated-csv/AAPL-2024-01-01-2025-01-01.csv
+```
+
+You can override destination if needed:
+
+```bash
+python3 scripts/fetch_yahoo_csv.py --ticker AAPL --start 2024-01-01 --end 2025-01-01 --out data/custom/aapl.csv
 ```
 
 Install required Python packages once:
