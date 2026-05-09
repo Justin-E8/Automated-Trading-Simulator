@@ -122,6 +122,26 @@ From there you can:
 
 No conversion script is needed.
 
+### Quick CLI helper to generate Yahoo CSV
+
+If you prefer terminal-based download instead of web UI export, use:
+
+```bash
+python3 scripts/fetch_yahoo_csv.py --ticker AAPL --start 2024-01-01 --end 2025-01-01 --interval 1d
+```
+
+This creates a file like:
+
+```text
+AAPL-2024-01-01-2025-01-01.csv
+```
+
+Install required Python packages once:
+
+```bash
+pip install yfinance pandas
+```
+
 ### CSV format for upload
 
 Required header columns:
