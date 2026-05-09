@@ -1,5 +1,7 @@
 package com.tradingsim.infrastructure.marketdata;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.tradingsim.domain.Candle;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
@@ -31,6 +33,7 @@ public class AlphaVantageMarketDataProvider implements MarketDataProvider {
     private final HttpClient httpClient = HttpClient.newBuilder()
             .connectTimeout(Duration.ofSeconds(12))
             .build();
+    private final ObjectMapper objectMapper = new ObjectMapper();
     private final String apiKey;
 
     public AlphaVantageMarketDataProvider(@Value("${market-data.alphavantage.api-key:}") String apiKey) {
@@ -88,13 +91,7 @@ public class AlphaVantageMarketDataProvider implements MarketDataProvider {
             }
             String body = response.body();
             if (body.trim().startsWith("{")) {
-                if (body.contains("\"Note\"")) {
-                    throw new IllegalArgumentException("Alpha Vantage rate limit reached. Please wait and retry.");
-                }
-                if (body.contains("\"Error Message\"")) {
-                    throw new IllegalArgumentException("Alpha Vantage rejected request. Check symbol and API key.");
-                }
-                throw new IllegalArgumentException("Unexpected response from Alpha Vantage.");
+                throw new IllegalArgumentException(deriveProviderErrorMessage(body));
             }
             return body;
         } catch (IOException exception) {
@@ -103,6 +100,21 @@ public class AlphaVantageMarketDataProvider implements MarketDataProvider {
             Thread.currentThread().interrupt();
             throw new IllegalArgumentException("Market data request was interrupted.");
         }
+    }
+
+    String deriveProviderErrorMessage(String body) {
+        try {
+            JsonNode root = objectMapper.readTree(body);
+            String[] keys = {"Error Message", "Note", "Information", "message"};
+            for (String key : keys) {
+                if (root.has(key) && !root.get(key).asText().isBlank()) {
+                    return "Alpha Vantage response: " + root.get(key).asText();
+                }
+            }
+        } catch (Exception ignored) {
+            // Fall back to a generic user-facing message below.
+        }
+        return "Unexpected response from Alpha Vantage. Check API key, symbol, and rate limits.";
     }
 
     private List<Candle> parseCsv(String csvContent, LocalDate startDate, LocalDate endDate) {
