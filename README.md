@@ -277,3 +277,4 @@ This repository demonstrates:
 
 - `docs/project-plan.md` - implementation roadmap and architecture evolution
 - `docs/architecture-diagram.md` - system component and data-flow diagram
+- `docs/interview-cheat-sheet.md` - deep technical interview preparation guide with code references
