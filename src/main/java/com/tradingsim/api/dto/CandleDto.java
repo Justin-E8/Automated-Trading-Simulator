@@ -6,6 +6,9 @@ import jakarta.validation.constraints.Positive;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
+/**
+ * API-facing candle representation used in CSV preview responses.
+ */
 public record CandleDto(
         @NotNull LocalDateTime timestamp,
         @NotNull @Positive BigDecimal open,

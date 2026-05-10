@@ -7,9 +7,15 @@ import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
 
+/**
+ * Shared validation rules for candle shape and ordering.
+ */
 @Service
 public class CandleValidationService {
 
+    /**
+     * Validates one candle for positive OHLC values and internal consistency.
+     */
     public void validateCandle(Candle candle, String context) {
         requirePositive(candle.open(), "open", context);
         requirePositive(candle.high(), "high", context);
@@ -26,6 +32,9 @@ public class CandleValidationService {
         }
     }
 
+    /**
+     * Ensures candles are strictly increasing by timestamp.
+     */
     public void validateChronologicalOrder(List<Candle> candles, String source) {
         if (candles == null || candles.isEmpty()) {
             throw new IllegalArgumentException("No candles found from " + source + ".");
