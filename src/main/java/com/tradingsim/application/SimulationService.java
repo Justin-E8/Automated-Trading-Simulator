@@ -8,10 +8,15 @@ import com.tradingsim.engine.SimulationRequest;
 import com.tradingsim.engine.SimulationResult;
 import com.tradingsim.infrastructure.csv.CsvCandleService;
 import com.tradingsim.infrastructure.csv.CsvPreviewSummary;
+import com.tradingsim.infrastructure.persistence.SimulationEquityPointEntity;
+import com.tradingsim.infrastructure.persistence.SimulationRunEntity;
+import com.tradingsim.infrastructure.persistence.SimulationRunRepository;
+import com.tradingsim.infrastructure.persistence.SimulationTradeEntity;
 import com.tradingsim.strategy.StrategyConfig;
 import com.tradingsim.strategy.StrategyFactory;
 import com.tradingsim.strategy.TradingStrategy;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.math.BigDecimal;
@@ -29,15 +34,18 @@ public class SimulationService {
     private final SimulationEngine simulationEngine;
     private final CsvCandleService csvCandleService;
     private final StrategyFactory strategyFactory;
+    private final SimulationRunRepository simulationRunRepository;
 
     public SimulationService(
             SimulationEngine simulationEngine,
             CsvCandleService csvCandleService,
-            StrategyFactory strategyFactory
+            StrategyFactory strategyFactory,
+            SimulationRunRepository simulationRunRepository
     ) {
         this.simulationEngine = simulationEngine;
         this.csvCandleService = csvCandleService;
         this.strategyFactory = strategyFactory;
+        this.simulationRunRepository = simulationRunRepository;
     }
 
     /**
@@ -79,6 +87,16 @@ public class SimulationService {
         return csvCandleService.preview(file);
     }
 
+    /**
+     * Fetches a stored simulation run by ID.
+     */
+    @Transactional(readOnly = true)
+    public BacktestRunResponse getRunById(long runId) {
+        SimulationRunEntity run = simulationRunRepository.findById(runId)
+                .orElseThrow(() -> new IllegalArgumentException("Simulation run not found for id=" + runId));
+        return toBacktestRunResponse(run);
+    }
+
     private BacktestRunResponse runBacktestWithCandles(
             String symbol,
             StrategyConfig strategyConfig,
@@ -108,8 +126,41 @@ public class SimulationService {
         );
 
         SimulationResult result = simulationEngine.run(simulationRequest, selectedStrategy);
+        SimulationRunEntity persistedRun = persistRun(result, symbol);
+        return toBacktestRunResponse(persistedRun.getId(), result);
+    }
 
+    private SimulationRunEntity persistRun(SimulationResult result, String symbol) {
+        SimulationRunEntity run = new SimulationRunEntity(
+                symbol,
+                result.strategyName(),
+                result.startingCash(),
+                result.endingEquity(),
+                result.metrics().totalReturnPct(),
+                result.metrics().maxDrawdownPct(),
+                result.metrics().sharpeRatio(),
+                result.metrics().winRatePct(),
+                result.metrics().tradeCount()
+        );
+
+        result.trades().forEach(trade -> run.addTrade(new SimulationTradeEntity(
+                trade.timestamp(),
+                trade.symbol(),
+                trade.side(),
+                trade.quantity(),
+                trade.price(),
+                trade.fee(),
+                trade.realizedPnl()
+        )));
+        result.equityCurve().forEach(point -> run.addEquityPoint(
+                new SimulationEquityPointEntity(point.timestamp(), point.equity())
+        ));
+        return simulationRunRepository.save(run);
+    }
+
+    private BacktestRunResponse toBacktestRunResponse(Long runId, SimulationResult result) {
         return new BacktestRunResponse(
+                runId,
                 result.strategyName(),
                 result.startingCash(),
                 result.endingEquity(),
@@ -135,7 +186,41 @@ public class SimulationService {
         );
     }
 
+    private BacktestRunResponse toBacktestRunResponse(SimulationRunEntity run) {
+        return new BacktestRunResponse(
+                run.getId(),
+                run.getStrategyName(),
+                run.getStartingCash(),
+                run.getEndingEquity(),
+                new BacktestRunResponse.MetricsDto(
+                        run.getTotalReturnPct(),
+                        run.getMaxDrawdownPct(),
+                        run.getSharpeRatio(),
+                        run.getWinRatePct(),
+                        run.getTradeCount()
+                ),
+                run.getTrades().stream().map(this::toTradeDto).toList(),
+                run.getEquityPoints().stream().map(this::toEquityPointDto).toList()
+        );
+    }
+
+    private BacktestRunResponse.TradeDto toTradeDto(SimulationTradeEntity trade) {
+        return new BacktestRunResponse.TradeDto(
+                trade.getTimestamp(),
+                trade.getSymbol(),
+                trade.getSide(),
+                trade.getQuantity(),
+                trade.getPrice(),
+                trade.getFee(),
+                trade.getRealizedPnl()
+        );
+    }
+
     private BacktestRunResponse.EquityPointDto toEquityPointDto(EquityPoint point) {
         return new BacktestRunResponse.EquityPointDto(point.timestamp(), point.equity());
+    }
+
+    private BacktestRunResponse.EquityPointDto toEquityPointDto(SimulationEquityPointEntity point) {
+        return new BacktestRunResponse.EquityPointDto(point.getTimestamp(), point.getEquity());
     }
 }

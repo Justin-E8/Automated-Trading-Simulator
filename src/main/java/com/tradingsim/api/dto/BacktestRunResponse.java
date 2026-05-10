@@ -7,6 +7,7 @@ import java.time.LocalDateTime;
 import java.util.List;
 
 public record BacktestRunResponse(
+        Long runId,
         String strategyName,
         BigDecimal startingCash,
         BigDecimal endingEquity,

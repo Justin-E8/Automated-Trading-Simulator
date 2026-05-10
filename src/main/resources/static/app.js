@@ -144,13 +144,15 @@ async function runCsvBacktest() {
     }
 
     renderResult(body);
-    setStatus("CSV backtest complete.", "success");
+    const runLabel = body.runId !== undefined && body.runId !== null ? ` Run ID: ${body.runId}.` : "";
+    setStatus(`CSV backtest complete.${runLabel}`, "success");
   } catch (error) {
     setStatus(error.message, "error");
   }
 }
 
 function renderResult(result) {
+  document.getElementById("metricRunId").textContent = result.runId ?? "-";
   document.getElementById("metricStrategy").textContent = result.strategyName;
   document.getElementById("metricStartCash").textContent = `$${formatNumber(result.startingCash)}`;
   document.getElementById("metricEndEquity").textContent = `$${formatNumber(result.endingEquity)}`;

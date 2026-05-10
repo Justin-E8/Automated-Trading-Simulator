@@ -9,9 +9,12 @@ import com.tradingsim.strategy.MeanReversionConfig;
 import com.tradingsim.strategy.SmaCrossConfig;
 import com.tradingsim.strategy.StrategyConfig;
 import com.tradingsim.strategy.StrategyType;
+import jakarta.validation.constraints.Positive;
 import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -102,6 +105,14 @@ public class SimulationController {
                 maxPositionSize,
                 maxHoldingCandles
         );
+    }
+
+    /**
+     * Retrieves a previously saved simulation run by ID.
+     */
+    @GetMapping("/runs/{runId}")
+    public BacktestRunResponse getRunById(@PathVariable("runId") @Positive long runId) {
+        return simulationService.getRunById(runId);
     }
 
     private StrategyConfig toStrategyConfig(

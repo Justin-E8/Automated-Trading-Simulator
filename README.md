@@ -35,6 +35,7 @@ This repository is designed to become a resume-quality software engineering proj
 
 - `POST /api/v1/simulations/csv/preview`
 - `POST /api/v1/simulations/csv/backtest`
+- `GET /api/v1/simulations/runs/{runId}`
 
 ## Local setup
 
@@ -109,6 +110,12 @@ From there you can:
 - Mean reversion params:
   - `meanReversionWindow`
   - `meanReversionThresholdPct`
+
+Backtest responses include `runId`, which can be used to fetch the saved run later:
+
+```bash
+curl http://localhost:8080/api/v1/simulations/runs/1
+```
 
 ### Recommended real-world stock workflow (no API key)
 
