@@ -19,37 +19,117 @@
     <p class="help-text">Recommended workflow: upload a Yahoo Finance CSV directly, then run a simulation.</p>
 
     <div class="form-grid">
-      <label for="symbol">Symbol</label>
+      <div class="label-with-info">
+        <label for="symbol">Symbol</label>
+        <button
+                type="button"
+                class="info-trigger"
+                data-info="Ticker symbol used for labeling and saved-run filtering (for example AAPL or MSFT)."
+                aria-label="What is symbol?"
+        >i</button>
+      </div>
       <input id="symbol" type="text" value="AAPL">
 
-      <label for="strategy">Strategy</label>
+      <div class="label-with-info">
+        <label for="strategy">Strategy</label>
+        <button
+                type="button"
+                class="info-trigger"
+                data-info="SMA Cross follows trend direction using two moving averages. Mean Reversion buys dips below average and exits when price returns higher."
+                aria-label="What is strategy selection?"
+        >i</button>
+      </div>
       <select id="strategy">
         <option value="sma-cross" selected>SMA Cross</option>
         <option value="mean-reversion">Mean Reversion</option>
       </select>
 
-      <label for="initialCash">Initial Cash</label>
+      <div class="label-with-info">
+        <label for="initialCash">Initial Cash</label>
+        <button
+                type="button"
+                class="info-trigger"
+                data-info="Starting portfolio value. All trade sizing and PnL are based on this capital level."
+                aria-label="What is initial cash?"
+        >i</button>
+      </div>
       <input id="initialCash" type="number" step="0.01" value="10000">
 
-      <label for="quantityPerTrade">Quantity Per Trade</label>
+      <div class="label-with-info">
+        <label for="quantityPerTrade">Quantity Per Trade</label>
+        <button
+                type="button"
+                class="info-trigger"
+                data-info="Number of shares to buy on each entry signal, before max position limits are applied."
+                aria-label="What is quantity per trade?"
+        >i</button>
+      </div>
       <input id="quantityPerTrade" type="number" step="1" min="1" value="10">
 
-      <label for="feeBps">Fee (bps)</label>
+      <div class="label-with-info">
+        <label for="feeBps">Fee (bps)</label>
+        <button
+                type="button"
+                class="info-trigger"
+                data-info="Transaction cost in basis points. 100 bps = 1%. Fees are charged on both buy and sell trades."
+                aria-label="What is fee bps?"
+        >i</button>
+      </div>
       <input id="feeBps" type="number" step="0.1" min="0" value="5.0">
 
-      <label for="slippageBps">Slippage (bps)</label>
+      <div class="label-with-info">
+        <label for="slippageBps">Slippage (bps)</label>
+        <button
+                type="button"
+                class="info-trigger"
+                data-info="Execution penalty in basis points. Buys execute slightly higher and sells slightly lower than close price."
+                aria-label="What is slippage?"
+        >i</button>
+      </div>
       <input id="slippageBps" type="number" step="0.1" min="0" value="0.0">
 
-      <label for="maxPositionSize">Max Position Size (shares, 0 = qty per trade)</label>
+      <div class="label-with-info">
+        <label for="maxPositionSize">Max Position Size (shares, 0 = qty per trade)</label>
+        <button
+                type="button"
+                class="info-trigger"
+                data-info="Hard cap on open shares. Set to 0 to use quantity-per-trade as the cap."
+                aria-label="What is max position size?"
+        >i</button>
+      </div>
       <input id="maxPositionSize" type="number" step="1" min="0" value="0">
 
-      <label for="maxHoldingCandles">Max Holding Candles (0 = disabled)</label>
+      <div class="label-with-info">
+        <label for="maxHoldingCandles">Max Holding Candles (0 = disabled)</label>
+        <button
+                type="button"
+                class="info-trigger"
+                data-info="Forces an exit after this many candles in a position. Set to 0 to disable time-based exits."
+                aria-label="What is max holding candles?"
+        >i</button>
+      </div>
       <input id="maxHoldingCandles" type="number" step="1" min="0" value="0">
 
-      <label for="stopLossPct">Stop Loss % (0 = disabled)</label>
+      <div class="label-with-info">
+        <label for="stopLossPct">Stop Loss % (0 = disabled)</label>
+        <button
+                type="button"
+                class="info-trigger"
+                data-info="Automatic risk exit when price falls this percent below entry. Set 0 to disable."
+                aria-label="What is stop loss?"
+        >i</button>
+      </div>
       <input id="stopLossPct" type="number" step="0.1" min="0" value="0.0">
 
-      <label for="takeProfitPct">Take Profit % (0 = disabled)</label>
+      <div class="label-with-info">
+        <label for="takeProfitPct">Take Profit % (0 = disabled)</label>
+        <button
+                type="button"
+                class="info-trigger"
+                data-info="Automatic profit lock when price rises this percent above entry. Set 0 to disable."
+                aria-label="What is take profit?"
+        >i</button>
+      </div>
       <input id="takeProfitPct" type="number" step="0.1" min="0" value="0.0">
     </div>
 
@@ -132,7 +212,15 @@
       <p class="help-text">Evaluate many parameter combinations and rank the best results.</p>
 
       <div class="form-grid strategy-group">
-        <label for="sweepOptimizeFor">Optimize For</label>
+        <div class="label-with-info">
+          <label for="sweepOptimizeFor">Optimize For</label>
+          <button
+                  type="button"
+                  class="info-trigger"
+                  data-info="Objective used to rank sweep results. Higher score is better for ranking."
+                  aria-label="What is optimize for?"
+          >i</button>
+        </div>
         <select id="sweepOptimizeFor">
           <option value="total-return-pct" selected>Total Return %</option>
           <option value="max-drawdown-pct">Min Max Drawdown %</option>
@@ -142,39 +230,83 @@
           <option value="expectancy">Expectancy</option>
         </select>
 
-        <label for="sweepMaxResults">Top Results To Return</label>
+        <div class="label-with-info">
+          <label for="sweepMaxResults">Top Results To Return</label>
+          <button
+                  type="button"
+                  class="info-trigger"
+                  data-info="Maximum number of best-performing combinations to return and display."
+                  aria-label="What is top results to return?"
+          >i</button>
+        </div>
         <input id="sweepMaxResults" type="number" step="1" min="1" max="50" value="10">
       </div>
 
       <div id="sweepSmaParams" class="form-grid strategy-group">
-        <label for="sweepShortStart">SMA Short Start</label>
+        <div class="label-with-info">
+          <label for="sweepShortStart">SMA Short Start</label>
+          <button type="button" class="info-trigger" data-info="Starting value for short SMA in the grid range." aria-label="What is sweep short start?">i</button>
+        </div>
         <input id="sweepShortStart" type="number" step="1" min="2" value="2">
-        <label for="sweepShortEnd">SMA Short End</label>
+        <div class="label-with-info">
+          <label for="sweepShortEnd">SMA Short End</label>
+          <button type="button" class="info-trigger" data-info="Final value for short SMA in the grid range." aria-label="What is sweep short end?">i</button>
+        </div>
         <input id="sweepShortEnd" type="number" step="1" min="2" value="10">
-        <label for="sweepShortStep">SMA Short Step</label>
+        <div class="label-with-info">
+          <label for="sweepShortStep">SMA Short Step</label>
+          <button type="button" class="info-trigger" data-info="Increment between short SMA values while generating combinations." aria-label="What is sweep short step?">i</button>
+        </div>
         <input id="sweepShortStep" type="number" step="1" min="1" value="1">
 
-        <label for="sweepLongStart">SMA Long Start</label>
+        <div class="label-with-info">
+          <label for="sweepLongStart">SMA Long Start</label>
+          <button type="button" class="info-trigger" data-info="Starting value for long SMA in the grid range." aria-label="What is sweep long start?">i</button>
+        </div>
         <input id="sweepLongStart" type="number" step="1" min="3" value="5">
-        <label for="sweepLongEnd">SMA Long End</label>
+        <div class="label-with-info">
+          <label for="sweepLongEnd">SMA Long End</label>
+          <button type="button" class="info-trigger" data-info="Final value for long SMA in the grid range." aria-label="What is sweep long end?">i</button>
+        </div>
         <input id="sweepLongEnd" type="number" step="1" min="3" value="20">
-        <label for="sweepLongStep">SMA Long Step</label>
+        <div class="label-with-info">
+          <label for="sweepLongStep">SMA Long Step</label>
+          <button type="button" class="info-trigger" data-info="Increment between long SMA values while generating combinations." aria-label="What is sweep long step?">i</button>
+        </div>
         <input id="sweepLongStep" type="number" step="1" min="1" value="1">
       </div>
 
       <div id="sweepMeanReversionParams" class="form-grid strategy-group hidden">
-        <label for="sweepMeanWindowStart">Mean Reversion Window Start</label>
+        <div class="label-with-info">
+          <label for="sweepMeanWindowStart">Mean Reversion Window Start</label>
+          <button type="button" class="info-trigger" data-info="Starting window size for mean reversion sweep combinations." aria-label="What is mean reversion sweep window start?">i</button>
+        </div>
         <input id="sweepMeanWindowStart" type="number" step="1" min="2" value="5">
-        <label for="sweepMeanWindowEnd">Mean Reversion Window End</label>
+        <div class="label-with-info">
+          <label for="sweepMeanWindowEnd">Mean Reversion Window End</label>
+          <button type="button" class="info-trigger" data-info="Final window size for mean reversion sweep combinations." aria-label="What is mean reversion sweep window end?">i</button>
+        </div>
         <input id="sweepMeanWindowEnd" type="number" step="1" min="2" value="20">
-        <label for="sweepMeanWindowStep">Mean Reversion Window Step</label>
+        <div class="label-with-info">
+          <label for="sweepMeanWindowStep">Mean Reversion Window Step</label>
+          <button type="button" class="info-trigger" data-info="Increment between mean reversion window values in the sweep grid." aria-label="What is mean reversion sweep window step?">i</button>
+        </div>
         <input id="sweepMeanWindowStep" type="number" step="1" min="1" value="1">
 
-        <label for="sweepMeanThresholdStart">Threshold Start (%)</label>
+        <div class="label-with-info">
+          <label for="sweepMeanThresholdStart">Threshold Start (%)</label>
+          <button type="button" class="info-trigger" data-info="Starting threshold percent for mean reversion sweep combinations." aria-label="What is mean reversion threshold start?">i</button>
+        </div>
         <input id="sweepMeanThresholdStart" type="number" step="0.1" min="0.1" value="0.5">
-        <label for="sweepMeanThresholdEnd">Threshold End (%)</label>
+        <div class="label-with-info">
+          <label for="sweepMeanThresholdEnd">Threshold End (%)</label>
+          <button type="button" class="info-trigger" data-info="Final threshold percent for mean reversion sweep combinations." aria-label="What is mean reversion threshold end?">i</button>
+        </div>
         <input id="sweepMeanThresholdEnd" type="number" step="0.1" min="0.1" value="3.0">
-        <label for="sweepMeanThresholdStep">Threshold Step (%)</label>
+        <div class="label-with-info">
+          <label for="sweepMeanThresholdStep">Threshold Step (%)</label>
+          <button type="button" class="info-trigger" data-info="Increment between threshold percent values in the sweep grid." aria-label="What is mean reversion threshold step?">i</button>
+        </div>
         <input id="sweepMeanThresholdStep" type="number" step="0.1" min="0.1" value="0.5">
       </div>
 
