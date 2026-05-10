@@ -35,6 +35,7 @@ This repository is designed to become a resume-quality software engineering proj
 
 - `POST /api/v1/simulations/csv/preview`
 - `POST /api/v1/simulations/csv/backtest`
+- `POST /api/v1/simulations/csv/sweep`
 - `GET /api/v1/simulations/runs/{runId}`
 - `GET /api/v1/simulations/runs` (paged + filterable)
 - `GET /api/v1/simulations/runs/compare?leftRunId={id}&rightRunId={id}`
@@ -112,6 +113,29 @@ From there you can:
 - Mean reversion params:
   - `meanReversionWindow`
   - `meanReversionThresholdPct`
+
+### Parameter sweep endpoint
+
+`POST /api/v1/simulations/csv/sweep` runs grid-search combinations and ranks them by an objective.
+
+Core fields:
+- all standard backtest controls (`file`, `symbol`, strategy/risk/execution controls)
+- `optimizeFor`:
+  - `total-return-pct`
+  - `max-drawdown-pct` (lower drawdown is better)
+  - `sharpe-ratio`
+  - `win-rate-pct`
+  - `profit-factor`
+  - `expectancy`
+- `maxResults` (top N combinations returned)
+
+SMA sweep range fields:
+- `shortWindowStart`, `shortWindowEnd`, `shortWindowStep`
+- `longWindowStart`, `longWindowEnd`, `longWindowStep`
+
+Mean reversion sweep range fields:
+- `meanReversionWindowStart`, `meanReversionWindowEnd`, `meanReversionWindowStep`
+- `meanReversionThresholdStartPct`, `meanReversionThresholdEndPct`, `meanReversionThresholdStepPct`
 
 Backtest responses include `runId`, which can be used to fetch the saved run later:
 

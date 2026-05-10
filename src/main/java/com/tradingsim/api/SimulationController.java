@@ -3,14 +3,19 @@ package com.tradingsim.api;
 import com.tradingsim.api.dto.BacktestRunResponse;
 import com.tradingsim.api.dto.CandleDto;
 import com.tradingsim.api.dto.CsvPreviewResponse;
+import com.tradingsim.api.dto.ParameterSweepResponse;
 import com.tradingsim.api.dto.RunComparisonResponse;
 import com.tradingsim.api.dto.RunHistoryResponse;
+import com.tradingsim.api.dto.SweepObjective;
 import com.tradingsim.application.SimulationService;
 import com.tradingsim.infrastructure.csv.CsvPreviewSummary;
+import com.tradingsim.strategy.MeanReversionSweepRange;
 import com.tradingsim.strategy.MeanReversionConfig;
+import com.tradingsim.strategy.SmaSweepRange;
 import com.tradingsim.strategy.SmaCrossConfig;
 import com.tradingsim.strategy.StrategyConfig;
 import com.tradingsim.strategy.StrategyType;
+import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Positive;
 import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.Min;
@@ -106,6 +111,73 @@ public class SimulationController {
                 takeProfitPct,
                 maxPositionSize,
                 maxHoldingCandles
+        );
+    }
+
+    /**
+     * Runs a parameter sweep and ranks configurations by selected objective.
+     */
+    @PostMapping("/csv/sweep")
+    public ParameterSweepResponse runParameterSweepFromCsv(
+            @RequestParam("file") MultipartFile file,
+            @RequestParam("symbol") @NotBlank String symbol,
+            @RequestParam(name = "strategy", defaultValue = "sma-cross") @NotBlank String strategy,
+            @RequestParam("initialCash") @DecimalMin("100.00") BigDecimal initialCash,
+            @RequestParam("quantityPerTrade") @Min(1) long quantityPerTrade,
+            @RequestParam("feeBps") @DecimalMin("0.0") BigDecimal feeBps,
+            @RequestParam(name = "slippageBps", defaultValue = "0.0") @DecimalMin("0.0") BigDecimal slippageBps,
+            @RequestParam(name = "stopLossPct", defaultValue = "0.0") @DecimalMin("0.0") BigDecimal stopLossPct,
+            @RequestParam(name = "takeProfitPct", defaultValue = "0.0") @DecimalMin("0.0") BigDecimal takeProfitPct,
+            @RequestParam(name = "maxPositionSize", defaultValue = "0") @Min(0) long maxPositionSize,
+            @RequestParam(name = "maxHoldingCandles", defaultValue = "0") @Min(0) int maxHoldingCandles,
+            @RequestParam(name = "optimizeFor", defaultValue = "total-return-pct") @NotBlank String optimizeFor,
+            @RequestParam(name = "maxResults", defaultValue = "10") @Min(1) @Max(50) int maxResults,
+            @RequestParam(name = "shortWindowStart", defaultValue = "2") @Min(2) int shortWindowStart,
+            @RequestParam(name = "shortWindowEnd", defaultValue = "10") @Min(2) int shortWindowEnd,
+            @RequestParam(name = "shortWindowStep", defaultValue = "1") @Min(1) int shortWindowStep,
+            @RequestParam(name = "longWindowStart", defaultValue = "5") @Min(3) int longWindowStart,
+            @RequestParam(name = "longWindowEnd", defaultValue = "20") @Min(3) int longWindowEnd,
+            @RequestParam(name = "longWindowStep", defaultValue = "1") @Min(1) int longWindowStep,
+            @RequestParam(name = "meanReversionWindowStart", defaultValue = "5") @Min(2) int meanReversionWindowStart,
+            @RequestParam(name = "meanReversionWindowEnd", defaultValue = "20") @Min(2) int meanReversionWindowEnd,
+            @RequestParam(name = "meanReversionWindowStep", defaultValue = "1") @Min(1) int meanReversionWindowStep,
+            @RequestParam(name = "meanReversionThresholdStartPct", defaultValue = "0.5")
+            @DecimalMin(value = "0.0", inclusive = false) BigDecimal meanReversionThresholdStartPct,
+            @RequestParam(name = "meanReversionThresholdEndPct", defaultValue = "3.0")
+            @DecimalMin(value = "0.0", inclusive = false) BigDecimal meanReversionThresholdEndPct,
+            @RequestParam(name = "meanReversionThresholdStepPct", defaultValue = "0.5")
+            @DecimalMin(value = "0.0", inclusive = false) BigDecimal meanReversionThresholdStepPct
+    ) {
+        return simulationService.runParameterSweepFromCsv(
+                file,
+                symbol,
+                StrategyType.fromApiValue(strategy),
+                initialCash,
+                quantityPerTrade,
+                feeBps,
+                slippageBps,
+                stopLossPct,
+                takeProfitPct,
+                maxPositionSize,
+                maxHoldingCandles,
+                SweepObjective.fromApiValue(optimizeFor),
+                maxResults,
+                new SmaSweepRange(
+                        shortWindowStart,
+                        shortWindowEnd,
+                        shortWindowStep,
+                        longWindowStart,
+                        longWindowEnd,
+                        longWindowStep
+                ),
+                new MeanReversionSweepRange(
+                        meanReversionWindowStart,
+                        meanReversionWindowEnd,
+                        meanReversionWindowStep,
+                        meanReversionThresholdStartPct,
+                        meanReversionThresholdEndPct,
+                        meanReversionThresholdStepPct
+                )
         );
     }
 

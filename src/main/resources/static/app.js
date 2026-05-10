@@ -6,6 +6,9 @@ const csvFileInput = document.getElementById("csvFileInput");
 const strategyInput = document.getElementById("strategy");
 const smaParams = document.getElementById("smaParams");
 const meanReversionParams = document.getElementById("meanReversionParams");
+const sweepSmaParams = document.getElementById("sweepSmaParams");
+const sweepMeanReversionParams = document.getElementById("sweepMeanReversionParams");
+const sweepResultsBody = document.getElementById("sweepResultsBody");
 
 function ensureElement(element, name) {
   if (!element) {
@@ -93,6 +96,37 @@ function buildCsvFormData() {
   return formData;
 }
 
+function buildSweepFormData() {
+  const params = baseParameters();
+  const formData = new FormData();
+  formData.append("file", selectedCsvFile());
+  formData.append("symbol", params.symbol);
+  formData.append("strategy", params.strategy);
+  formData.append("initialCash", String(params.initialCash));
+  formData.append("quantityPerTrade", String(params.quantityPerTrade));
+  formData.append("feeBps", String(params.feeBps));
+  formData.append("slippageBps", String(params.slippageBps));
+  formData.append("stopLossPct", String(params.stopLossPct));
+  formData.append("takeProfitPct", String(params.takeProfitPct));
+  formData.append("maxPositionSize", String(params.maxPositionSize));
+  formData.append("maxHoldingCandles", String(params.maxHoldingCandles));
+  formData.append("optimizeFor", String(document.getElementById("sweepOptimizeFor").value));
+  formData.append("maxResults", String(document.getElementById("sweepMaxResults").value));
+  formData.append("shortWindowStart", String(document.getElementById("sweepShortStart").value));
+  formData.append("shortWindowEnd", String(document.getElementById("sweepShortEnd").value));
+  formData.append("shortWindowStep", String(document.getElementById("sweepShortStep").value));
+  formData.append("longWindowStart", String(document.getElementById("sweepLongStart").value));
+  formData.append("longWindowEnd", String(document.getElementById("sweepLongEnd").value));
+  formData.append("longWindowStep", String(document.getElementById("sweepLongStep").value));
+  formData.append("meanReversionWindowStart", String(document.getElementById("sweepMeanWindowStart").value));
+  formData.append("meanReversionWindowEnd", String(document.getElementById("sweepMeanWindowEnd").value));
+  formData.append("meanReversionWindowStep", String(document.getElementById("sweepMeanWindowStep").value));
+  formData.append("meanReversionThresholdStartPct", String(document.getElementById("sweepMeanThresholdStart").value));
+  formData.append("meanReversionThresholdEndPct", String(document.getElementById("sweepMeanThresholdEnd").value));
+  formData.append("meanReversionThresholdStepPct", String(document.getElementById("sweepMeanThresholdStep").value));
+  return formData;
+}
+
 function initializeCsvPreview() {
   // CSV-only workflow no longer preloads sample JSON.
   ensureElement(candlesInput, "candlesInput").value = "Upload a CSV and click Preview CSV.";
@@ -104,10 +138,14 @@ function syncStrategyControls() {
   if (strategy === "mean-reversion") {
     ensureElement(smaParams, "smaParams").classList.add("hidden");
     ensureElement(meanReversionParams, "meanReversionParams").classList.remove("hidden");
+    ensureElement(sweepSmaParams, "sweepSmaParams").classList.add("hidden");
+    ensureElement(sweepMeanReversionParams, "sweepMeanReversionParams").classList.remove("hidden");
     return;
   }
   ensureElement(smaParams, "smaParams").classList.remove("hidden");
   ensureElement(meanReversionParams, "meanReversionParams").classList.add("hidden");
+  ensureElement(sweepSmaParams, "sweepSmaParams").classList.remove("hidden");
+  ensureElement(sweepMeanReversionParams, "sweepMeanReversionParams").classList.add("hidden");
 }
 
 async function previewCsv() {
@@ -146,6 +184,29 @@ async function runCsvBacktest() {
     renderResult(body);
     const runLabel = body.runId !== undefined && body.runId !== null ? ` Run ID: ${body.runId}.` : "";
     setStatus(`CSV backtest complete.${runLabel}`, "success");
+  } catch (error) {
+    setStatus(error.message, "error");
+  }
+}
+
+async function runParameterSweep() {
+  setStatus("Running parameter sweep...");
+  try {
+    const response = await fetch("/api/v1/simulations/csv/sweep", {
+      method: "POST",
+      body: buildSweepFormData()
+    });
+    const body = await readResponseBody(response, "Server returned invalid sweep response.");
+    if (!response.ok) {
+      throw new Error(body.error || "Parameter sweep failed.");
+    }
+
+    renderSweepResults(body.results || []);
+    const bestScore = body.bestResult ? formatNumber(body.bestResult.objectiveScore, 4) : "n/a";
+    setStatus(
+      `Sweep complete. Evaluated ${body.evaluatedCombinations} combinations; showing ${body.returnedCombinations}. Best score: ${bestScore}.`,
+      "success"
+    );
   } catch (error) {
     setStatus(error.message, "error");
   }
@@ -202,6 +263,36 @@ function renderTrades(trades) {
     `;
     ensureElement(tradesTableBody, "tradesTableBody").appendChild(row);
   });
+}
+
+function renderSweepResults(results) {
+  if (!Array.isArray(results) || results.length === 0) {
+    ensureElement(sweepResultsBody, "sweepResultsBody").innerHTML = "<tr><td colspan=\"6\">No sweep results returned.</td></tr>";
+    return;
+  }
+  ensureElement(sweepResultsBody, "sweepResultsBody").innerHTML = "";
+  results.forEach((result) => {
+    const row = document.createElement("tr");
+    row.innerHTML = `
+      <td>${result.rank}</td>
+      <td>${configurationLabel(result.parameters)}</td>
+      <td>${formatNumber(result.objectiveScore, 4)}</td>
+      <td>${formatNumber(result.metrics.totalReturnPct, 4)}</td>
+      <td>${formatNumber(result.metrics.sharpeRatio, 4)}</td>
+      <td>${result.metrics.tradeCount}</td>
+    `;
+    ensureElement(sweepResultsBody, "sweepResultsBody").appendChild(row);
+  });
+}
+
+function configurationLabel(parameters) {
+  if (parameters.shortWindow !== null && parameters.longWindow !== null) {
+    return `SMA(${parameters.shortWindow}, ${parameters.longWindow})`;
+  }
+  if (parameters.meanReversionWindow !== null && parameters.meanReversionThresholdPct !== null) {
+    return `MeanRev(${parameters.meanReversionWindow}, ${parameters.meanReversionThresholdPct}%)`;
+  }
+  return "Unknown";
 }
 
 function renderEquityCurve(points) {
@@ -264,6 +355,7 @@ function renderEquityCurve(points) {
 
 document.getElementById("previewCsvButton").addEventListener("click", previewCsv);
 document.getElementById("runCsvBacktestButton").addEventListener("click", runCsvBacktest);
+document.getElementById("runSweepButton").addEventListener("click", runParameterSweep);
 ensureElement(strategyInput, "strategy").addEventListener("change", () => {
   syncStrategyControls();
   setStatus(`Strategy selected: ${strategyInput.value}`, "info");
