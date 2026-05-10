@@ -1,5 +1,8 @@
 package com.tradingsim.api.dto;
 
+/**
+ * Pairwise run comparison payload with right-minus-left metric deltas.
+ */
 public record RunComparisonResponse(
         RunSummaryResponse leftRun,
         RunSummaryResponse rightRun,

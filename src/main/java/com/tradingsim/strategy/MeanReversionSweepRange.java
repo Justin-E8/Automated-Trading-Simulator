@@ -2,6 +2,9 @@ package com.tradingsim.strategy;
 
 import java.math.BigDecimal;
 
+/**
+ * Sweep ranges for mean-reversion window and threshold percentage.
+ */
 public record MeanReversionSweepRange(
         int windowStart,
         int windowEnd,

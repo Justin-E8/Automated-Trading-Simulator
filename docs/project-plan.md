@@ -11,6 +11,11 @@ Build a backend-first automated trading simulator in Java that demonstrates:
 
 This should be strong enough to discuss in internship interviews as a real software engineering project, not just a coding exercise.
 
+## Current implementation status snapshot
+
+- Completed: Phases 0 through 6 core milestones (CSV workflow, multi-strategy support, risk controls, persistence, run history APIs, expanded analytics + parameter sweep)
+- Next active phase: **Phase 7 - Quality and reliability hardening**
+
 ## 2) What the project should do (MVP)
 
 The MVP focuses on paper/backtesting simulation only (no real brokerage integration).

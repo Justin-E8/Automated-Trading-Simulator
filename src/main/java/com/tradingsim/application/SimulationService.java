@@ -401,6 +401,9 @@ public class SimulationService {
         return new BacktestRunResponse.EquityPointDto(point.getTimestamp(), point.getEquity());
     }
 
+    /**
+     * Builds concrete strategy-config combinations from sweep ranges.
+     */
     private List<StrategyConfig> buildSweepConfigs(
             StrategyType strategyType,
             SmaSweepRange smaRange,
@@ -449,6 +452,9 @@ public class SimulationService {
         return values;
     }
 
+    /**
+     * Converts a simulation result into a sortable objective score.
+     */
     private double objectiveScore(SweepObjective objective, SimulationResult result) {
         return switch (objective) {
             case TOTAL_RETURN_PCT -> result.metrics().totalReturnPct();

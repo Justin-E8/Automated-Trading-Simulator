@@ -16,6 +16,9 @@ import jakarta.persistence.Table;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
+/**
+ * Persisted trade row belonging to a simulation run.
+ */
 @Entity
 @Table(name = "simulation_trades")
 public class SimulationTradeEntity {

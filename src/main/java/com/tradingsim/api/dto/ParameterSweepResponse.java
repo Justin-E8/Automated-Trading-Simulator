@@ -3,6 +3,9 @@ package com.tradingsim.api.dto;
 import java.math.BigDecimal;
 import java.util.List;
 
+/**
+ * Ranked output from parameter sweep/grid-search execution.
+ */
 public record ParameterSweepResponse(
         String strategy,
         String optimizeFor,

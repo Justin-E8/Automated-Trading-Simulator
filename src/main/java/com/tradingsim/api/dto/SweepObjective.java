@@ -1,5 +1,8 @@
 package com.tradingsim.api.dto;
 
+/**
+ * Supported objective metrics for parameter sweep ranking.
+ */
 public enum SweepObjective {
     TOTAL_RETURN_PCT("total-return-pct"),
     MAX_DRAWDOWN_PCT("max-drawdown-pct"),

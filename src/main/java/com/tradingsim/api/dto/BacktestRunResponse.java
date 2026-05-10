@@ -6,6 +6,9 @@ import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
 
+/**
+ * Full backtest payload including metadata, metrics, trades, and equity curve.
+ */
 public record BacktestRunResponse(
         Long runId,
         LocalDateTime createdAt,

@@ -24,7 +24,7 @@ This repository is designed to become a resume-quality software engineering proj
 - Run SMA crossover backtests from uploaded CSV files
 - Run mean-reversion backtests from uploaded CSV files
 - Accept raw Yahoo Finance CSV exports directly (no conversion script required)
-- Simulate buy/sell execution with configurable fee basis points
+- Simulate buy/sell execution with configurable fees, slippage, and risk controls
 - Track:
   - trade events
   - equity curve
@@ -39,6 +39,8 @@ This repository is designed to become a resume-quality software engineering proj
 - `GET /api/v1/simulations/runs/{runId}`
 - `GET /api/v1/simulations/runs` (paged + filterable)
 - `GET /api/v1/simulations/runs/compare?leftRunId={id}&rightRunId={id}`
+
+> Note: current default persistence uses in-memory H2 (`jdbc:h2:mem`), so saved runs are available while the app is running and reset on restart.
 
 ## Local setup
 
@@ -225,11 +227,11 @@ Example row:
 
 ## Planned next steps
 
-1. Multi-strategy framework (add mean reversion strategy and strategy selector)
-2. Persist simulation runs/results in PostgreSQL
-3. Add risk controls (position sizing, stop loss, max drawdown guardrails)
-4. Add richer analysis metrics and parameter sweeps
-5. Keep improving the lightweight UI before considering a heavier frontend stack
+1. Quality and reliability hardening (expand deterministic tests and integration coverage)
+2. Standardize API error schema and edge-case handling
+3. Add performance tests for larger datasets and sweep workloads
+4. Improve saved-run and comparison UX in the lightweight UI
+5. Add durable DB profile (e.g., PostgreSQL) when ready for persistent multi-session history
 
 ---
 

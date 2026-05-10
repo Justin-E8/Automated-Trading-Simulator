@@ -3,6 +3,9 @@ package com.tradingsim.api.dto;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
+/**
+ * Lightweight run summary for paged history responses.
+ */
 public record RunSummaryResponse(
         Long runId,
         LocalDateTime createdAt,

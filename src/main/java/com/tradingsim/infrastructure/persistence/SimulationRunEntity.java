@@ -17,6 +17,9 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * Persisted aggregate root for one completed simulation run.
+ */
 @Entity
 @Table(name = "simulation_runs")
 public class SimulationRunEntity {

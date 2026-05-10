@@ -1,5 +1,8 @@
 package com.tradingsim.strategy;
 
+/**
+ * Inclusive integer range definition for SMA short/long sweep grids.
+ */
 public record SmaSweepRange(
         int shortWindowStart,
         int shortWindowEnd,

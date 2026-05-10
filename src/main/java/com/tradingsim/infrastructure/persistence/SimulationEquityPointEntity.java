@@ -13,6 +13,9 @@ import jakarta.persistence.Table;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
+/**
+ * Persisted equity-curve point belonging to a simulation run.
+ */
 @Entity
 @Table(name = "simulation_equity_points")
 public class SimulationEquityPointEntity {
