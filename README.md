@@ -22,6 +22,7 @@ This repository is designed to become a resume-quality software engineering proj
 ## Current backend capabilities
 
 - Run SMA crossover backtests from uploaded CSV files
+- Run mean-reversion backtests from uploaded CSV files
 - Accept raw Yahoo Finance CSV exports directly (no conversion script required)
 - Simulate buy/sell execution with configurable fee basis points
 - Track:
@@ -83,9 +84,26 @@ Once the app is running, open:
 
 From there you can:
 
-- adjust strategy parameters
+- choose strategy (SMA Cross or Mean Reversion)
 - upload a CSV, preview candle stats, and run a CSV-based backtest
 - inspect metrics, trades, and equity curve output
+
+### CSV backtest parameters
+
+`POST /api/v1/simulations/csv/backtest` accepts multipart form fields:
+
+- `file` (CSV upload)
+- `symbol`
+- `strategy`: `sma-cross` (default) or `mean-reversion`
+- `initialCash`
+- `quantityPerTrade`
+- `feeBps`
+- SMA params:
+  - `shortWindow`
+  - `longWindow`
+- Mean reversion params:
+  - `meanReversionWindow`
+  - `meanReversionThresholdPct`
 
 ### Recommended real-world stock workflow (no API key)
 

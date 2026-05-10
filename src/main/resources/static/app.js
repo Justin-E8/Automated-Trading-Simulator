@@ -3,6 +3,9 @@ const candlesInput = document.getElementById("candlesInput");
 const tradesTableBody = document.getElementById("tradesTableBody");
 const equityCanvas = document.getElementById("equityCanvas");
 const csvFileInput = document.getElementById("csvFileInput");
+const strategyInput = document.getElementById("strategy");
+const smaParams = document.getElementById("smaParams");
+const meanReversionParams = document.getElementById("meanReversionParams");
 
 function ensureElement(element, name) {
   if (!element) {
@@ -44,11 +47,14 @@ function formatNumber(value, digits = 2) {
 function baseParameters() {
   return {
     symbol: document.getElementById("symbol").value.trim(),
+    strategy: ensureElement(strategyInput, "strategy").value,
     initialCash: Number(document.getElementById("initialCash").value),
     quantityPerTrade: Number(document.getElementById("quantityPerTrade").value),
     feeBps: Number(document.getElementById("feeBps").value),
     shortWindow: Number(document.getElementById("shortWindow").value),
-    longWindow: Number(document.getElementById("longWindow").value)
+    longWindow: Number(document.getElementById("longWindow").value),
+    meanReversionWindow: Number(document.getElementById("meanReversionWindow").value),
+    meanReversionThresholdPct: Number(document.getElementById("meanReversionThresholdPct").value)
   };
 }
 
@@ -71,12 +77,27 @@ function buildCsvFormData() {
   formData.append("feeBps", String(params.feeBps));
   formData.append("shortWindow", String(params.shortWindow));
   formData.append("longWindow", String(params.longWindow));
+  formData.append("strategy", params.strategy);
+  formData.append("meanReversionWindow", String(params.meanReversionWindow));
+  formData.append("meanReversionThresholdPct", String(params.meanReversionThresholdPct));
   return formData;
 }
 
 function initializeCsvPreview() {
   // CSV-only workflow no longer preloads sample JSON.
   ensureElement(candlesInput, "candlesInput").value = "Upload a CSV and click Preview CSV.";
+  syncStrategyControls();
+}
+
+function syncStrategyControls() {
+  const strategy = ensureElement(strategyInput, "strategy").value;
+  if (strategy === "mean-reversion") {
+    ensureElement(smaParams, "smaParams").classList.add("hidden");
+    ensureElement(meanReversionParams, "meanReversionParams").classList.remove("hidden");
+    return;
+  }
+  ensureElement(smaParams, "smaParams").classList.remove("hidden");
+  ensureElement(meanReversionParams, "meanReversionParams").classList.add("hidden");
 }
 
 async function previewCsv() {
@@ -226,6 +247,10 @@ function renderEquityCurve(points) {
 
 document.getElementById("previewCsvButton").addEventListener("click", previewCsv);
 document.getElementById("runCsvBacktestButton").addEventListener("click", runCsvBacktest);
+ensureElement(strategyInput, "strategy").addEventListener("change", () => {
+  syncStrategyControls();
+  setStatus(`Strategy selected: ${strategyInput.value}`, "info");
+});
 ensureElement(csvFileInput, "csvFileInput").addEventListener("change", () => {
   try {
     const file = selectedCsvFile();

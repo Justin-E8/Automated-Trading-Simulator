@@ -64,20 +64,27 @@ public class SimulationController {
     public BacktestRunResponse runBacktestFromCsv(
             @RequestParam("file") MultipartFile file,
             @RequestParam("symbol") @NotBlank String symbol,
+            @RequestParam(name = "strategy", defaultValue = "sma-cross") @NotBlank String strategy,
             @RequestParam("initialCash") @DecimalMin("100.00") BigDecimal initialCash,
             @RequestParam("quantityPerTrade") @Min(1) long quantityPerTrade,
             @RequestParam("feeBps") @DecimalMin("0.0") BigDecimal feeBps,
             @RequestParam("shortWindow") @Min(2) int shortWindow,
-            @RequestParam("longWindow") @Min(3) int longWindow
+            @RequestParam("longWindow") @Min(3) int longWindow,
+            @RequestParam(name = "meanReversionWindow", defaultValue = "10") @Min(2) int meanReversionWindow,
+            @RequestParam(name = "meanReversionThresholdPct", defaultValue = "2.0")
+            @DecimalMin(value = "0.0", inclusive = false) BigDecimal meanReversionThresholdPct
     ) {
         return simulationService.runBacktestFromCsv(
                 file,
                 symbol,
+                strategy,
                 initialCash,
                 quantityPerTrade,
                 feeBps,
                 shortWindow,
-                longWindow
+                longWindow,
+                meanReversionWindow,
+                meanReversionThresholdPct
         );
     }
 

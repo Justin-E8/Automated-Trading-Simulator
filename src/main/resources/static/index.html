@@ -22,6 +22,12 @@
       <label for="symbol">Symbol</label>
       <input id="symbol" type="text" value="AAPL">
 
+      <label for="strategy">Strategy</label>
+      <select id="strategy">
+        <option value="sma-cross" selected>SMA Cross</option>
+        <option value="mean-reversion">Mean Reversion</option>
+      </select>
+
       <label for="initialCash">Initial Cash</label>
       <input id="initialCash" type="number" step="0.01" value="10000">
 
@@ -30,12 +36,22 @@
 
       <label for="feeBps">Fee (bps)</label>
       <input id="feeBps" type="number" step="0.1" min="0" value="5.0">
+    </div>
 
+    <div id="smaParams" class="form-grid strategy-group">
       <label for="shortWindow">Short SMA Window</label>
       <input id="shortWindow" type="number" step="1" min="2" value="3">
 
       <label for="longWindow">Long SMA Window</label>
       <input id="longWindow" type="number" step="1" min="3" value="5">
+    </div>
+
+    <div id="meanReversionParams" class="form-grid strategy-group hidden">
+      <label for="meanReversionWindow">Mean Reversion Window</label>
+      <input id="meanReversionWindow" type="number" step="1" min="2" value="10">
+
+      <label for="meanReversionThresholdPct">Deviation Threshold (%)</label>
+      <input id="meanReversionThresholdPct" type="number" step="0.1" min="0.1" value="2.0">
     </div>
 
     <hr class="section-divider">
