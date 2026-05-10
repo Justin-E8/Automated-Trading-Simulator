@@ -53,6 +53,21 @@ public class SimulationRunEntity {
     private double winRatePct;
 
     @Column(nullable = false)
+    private double profitFactor;
+
+    @Column(nullable = false)
+    private double expectancy;
+
+    @Column(nullable = false)
+    private double averageWin;
+
+    @Column(nullable = false)
+    private double averageLoss;
+
+    @Column(nullable = false)
+    private double exposureTimePct;
+
+    @Column(nullable = false)
     private long tradeCount;
 
     @OneToMany(mappedBy = "run", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.EAGER)
@@ -75,6 +90,11 @@ public class SimulationRunEntity {
             double maxDrawdownPct,
             double sharpeRatio,
             double winRatePct,
+            double profitFactor,
+            double expectancy,
+            double averageWin,
+            double averageLoss,
+            double exposureTimePct,
             long tradeCount
     ) {
         this.symbol = symbol;
@@ -85,6 +105,11 @@ public class SimulationRunEntity {
         this.maxDrawdownPct = maxDrawdownPct;
         this.sharpeRatio = sharpeRatio;
         this.winRatePct = winRatePct;
+        this.profitFactor = profitFactor;
+        this.expectancy = expectancy;
+        this.averageWin = averageWin;
+        this.averageLoss = averageLoss;
+        this.exposureTimePct = exposureTimePct;
         this.tradeCount = tradeCount;
     }
 
@@ -143,6 +168,26 @@ public class SimulationRunEntity {
 
     public double getWinRatePct() {
         return winRatePct;
+    }
+
+    public double getProfitFactor() {
+        return profitFactor;
+    }
+
+    public double getExpectancy() {
+        return expectancy;
+    }
+
+    public double getAverageWin() {
+        return averageWin;
+    }
+
+    public double getAverageLoss() {
+        return averageLoss;
+    }
+
+    public double getExposureTimePct() {
+        return exposureTimePct;
     }
 
     public long getTradeCount() {

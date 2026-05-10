@@ -11,6 +11,11 @@ public record RunComparisonResponse(
             double maxDrawdownPctDelta,
             double sharpeRatioDelta,
             double winRatePctDelta,
+            double profitFactorDelta,
+            double expectancyDelta,
+            double averageWinDelta,
+            double averageLossDelta,
+            double exposureTimePctDelta,
             long tradeCountDelta
     ) {
     }

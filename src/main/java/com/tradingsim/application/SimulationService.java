@@ -150,6 +150,11 @@ public class SimulationService {
                         rightRun.getMaxDrawdownPct() - leftRun.getMaxDrawdownPct(),
                         rightRun.getSharpeRatio() - leftRun.getSharpeRatio(),
                         rightRun.getWinRatePct() - leftRun.getWinRatePct(),
+                        rightRun.getProfitFactor() - leftRun.getProfitFactor(),
+                        rightRun.getExpectancy() - leftRun.getExpectancy(),
+                        rightRun.getAverageWin() - leftRun.getAverageWin(),
+                        rightRun.getAverageLoss() - leftRun.getAverageLoss(),
+                        rightRun.getExposureTimePct() - leftRun.getExposureTimePct(),
                         rightRun.getTradeCount() - leftRun.getTradeCount()
                 )
         );
@@ -198,6 +203,11 @@ public class SimulationService {
                 result.metrics().maxDrawdownPct(),
                 result.metrics().sharpeRatio(),
                 result.metrics().winRatePct(),
+                result.metrics().profitFactor(),
+                result.metrics().expectancy(),
+                result.metrics().averageWin(),
+                result.metrics().averageLoss(),
+                result.metrics().exposureTimePct(),
                 result.metrics().tradeCount()
         );
 
@@ -229,6 +239,11 @@ public class SimulationService {
                         run.getMaxDrawdownPct(),
                         run.getSharpeRatio(),
                         run.getWinRatePct(),
+                        run.getProfitFactor(),
+                        run.getExpectancy(),
+                        run.getAverageWin(),
+                        run.getAverageLoss(),
+                        run.getExposureTimePct(),
                         run.getTradeCount()
                 ),
                 run.getTrades().stream().map(this::toTradeDto).toList(),
@@ -248,6 +263,11 @@ public class SimulationService {
                 run.getMaxDrawdownPct(),
                 run.getSharpeRatio(),
                 run.getWinRatePct(),
+                run.getProfitFactor(),
+                run.getExpectancy(),
+                run.getAverageWin(),
+                run.getAverageLoss(),
+                run.getExposureTimePct(),
                 run.getTradeCount()
         );
     }

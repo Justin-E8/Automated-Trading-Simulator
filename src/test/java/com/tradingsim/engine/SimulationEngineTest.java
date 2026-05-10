@@ -37,6 +37,8 @@ class SimulationEngineTest {
         assertThat(result.equityCurve()).hasSize(candles().size());
         assertThat(result.metrics().tradeCount()).isGreaterThanOrEqualTo(0);
         assertThat(result.endingEquity()).isNotNull();
+        assertThat(result.metrics().profitFactor()).isGreaterThanOrEqualTo(0.0);
+        assertThat(result.metrics().exposureTimePct()).isBetween(0.0, 100.0);
     }
 
     @Test

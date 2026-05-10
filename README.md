@@ -28,7 +28,7 @@ This repository is designed to become a resume-quality software engineering proj
 - Track:
   - trade events
   - equity curve
-  - summary metrics (return, drawdown, Sharpe, win rate)
+  - summary metrics (return, drawdown, Sharpe, win rate, profit factor, expectancy, average win/loss, exposure time)
 - Preview uploaded candle datasets (row count and date/price range)
 
 ## API endpoints (initial)

@@ -160,6 +160,11 @@ function renderResult(result) {
   document.getElementById("metricMaxDrawdown").textContent = formatNumber(result.metrics.maxDrawdownPct, 4);
   document.getElementById("metricSharpe").textContent = formatNumber(result.metrics.sharpeRatio, 4);
   document.getElementById("metricWinRate").textContent = formatNumber(result.metrics.winRatePct, 4);
+  document.getElementById("metricProfitFactor").textContent = formatNumber(result.metrics.profitFactor, 4);
+  document.getElementById("metricExpectancy").textContent = formatNumber(result.metrics.expectancy, 4);
+  document.getElementById("metricAverageWin").textContent = formatNumber(result.metrics.averageWin, 4);
+  document.getElementById("metricAverageLoss").textContent = formatNumber(result.metrics.averageLoss, 4);
+  document.getElementById("metricExposureTime").textContent = formatNumber(result.metrics.exposureTimePct, 4);
   document.getElementById("metricTradeCount").textContent = String(result.metrics.tradeCount);
 
   renderTrades(result.trades);

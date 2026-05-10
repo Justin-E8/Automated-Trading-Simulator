@@ -25,8 +25,8 @@ class SimulationServiceHistoryTest {
 
     @Test
     void listRuns_filtersBySymbolAndStrategy() {
-        simulationRunRepository.save(run("AAPL", "SMA(3,5)", "10000.0000", "10100.0000", 1.0, 0.5, 1.1, 55.0, 2));
-        simulationRunRepository.save(run("MSFT", "MeanReversion(8,1.5%)", "10000.0000", "10300.0000", 3.0, 1.2, 1.3, 60.0, 3));
+        simulationRunRepository.save(run("AAPL", "SMA(3,5)", "10000.0000", "10100.0000", 1.0, 0.5, 1.1, 55.0, 1.4, 8.0, 12.0, -4.0, 45.0, 2));
+        simulationRunRepository.save(run("MSFT", "MeanReversion(8,1.5%)", "10000.0000", "10300.0000", 3.0, 1.2, 1.3, 60.0, 2.2, 10.0, 15.0, -5.0, 38.0, 3));
 
         RunHistoryResponse history = simulationService.listRuns(0, 10, "MSF", "mean");
 
@@ -39,16 +39,18 @@ class SimulationServiceHistoryTest {
     @Test
     void compareRuns_returnsRightMinusLeftDeltas() {
         SimulationRunEntity left = simulationRunRepository.save(
-                run("AAPL", "SMA(3,5)", "10000.0000", "10050.0000", 0.5, 2.0, 1.0, 50.0, 4)
+                run("AAPL", "SMA(3,5)", "10000.0000", "10050.0000", 0.5, 2.0, 1.0, 50.0, 1.5, 6.0, 10.0, -4.0, 40.0, 4)
         );
         SimulationRunEntity right = simulationRunRepository.save(
-                run("AAPL", "SMA(5,10)", "10000.0000", "10200.0000", 2.0, 1.5, 1.2, 60.0, 6)
+                run("AAPL", "SMA(5,10)", "10000.0000", "10200.0000", 2.0, 1.5, 1.2, 60.0, 2.0, 9.0, 14.0, -3.0, 50.0, 6)
         );
 
         RunComparisonResponse comparison = simulationService.compareRuns(left.getId(), right.getId());
 
         assertThat(comparison.delta().endingEquityDelta()).isEqualTo(150.0);
         assertThat(comparison.delta().totalReturnPctDelta()).isEqualTo(1.5);
+        assertThat(comparison.delta().profitFactorDelta()).isEqualTo(0.5);
+        assertThat(comparison.delta().exposureTimePctDelta()).isEqualTo(10.0);
         assertThat(comparison.delta().tradeCountDelta()).isEqualTo(2);
     }
 
@@ -61,6 +63,11 @@ class SimulationServiceHistoryTest {
             double maxDrawdownPct,
             double sharpeRatio,
             double winRatePct,
+            double profitFactor,
+            double expectancy,
+            double averageWin,
+            double averageLoss,
+            double exposureTimePct,
             long tradeCount
     ) {
         return new SimulationRunEntity(
@@ -72,6 +79,11 @@ class SimulationServiceHistoryTest {
                 maxDrawdownPct,
                 sharpeRatio,
                 winRatePct,
+                profitFactor,
+                expectancy,
+                averageWin,
+                averageLoss,
+                exposureTimePct,
                 tradeCount
         );
     }

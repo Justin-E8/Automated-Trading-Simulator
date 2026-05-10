@@ -29,6 +29,11 @@ class SimulationRunRepositoryTest {
                 1.5,
                 1.2,
                 60.0,
+                1.8,
+                9.5,
+                16.0,
+                -7.2,
+                48.0,
                 2
         );
         run.addTrade(new SimulationTradeEntity(
@@ -78,6 +83,11 @@ class SimulationRunRepositoryTest {
                 0.5,
                 1.1,
                 55.0,
+                1.6,
+                7.2,
+                11.3,
+                -4.1,
+                44.0,
                 2
         ));
         simulationRunRepository.save(new SimulationRunEntity(
@@ -89,6 +99,11 @@ class SimulationRunRepositoryTest {
                 1.2,
                 1.3,
                 60.0,
+                2.1,
+                12.4,
+                18.7,
+                -5.5,
+                39.0,
                 3
         ));
 

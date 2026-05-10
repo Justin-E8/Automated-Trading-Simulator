@@ -59,6 +59,7 @@ public class SimulationEngine {
         List<Candle> history = new ArrayList<>();
         List<Trade> trades = new ArrayList<>();
         List<EquityPoint> equityCurve = new ArrayList<>();
+        int exposureBars = 0;
 
         int winningClosedTrades = 0;
         int closedTrades = 0;
@@ -128,6 +129,10 @@ public class SimulationEngine {
                 barsHeld = 0;
             }
 
+            if (openQuantity > 0L) {
+                exposureBars++;
+            }
+
             BigDecimal equity = cash.add(price.multiply(BigDecimal.valueOf(openQuantity)));
             equityCurve.add(new EquityPoint(candle.timestamp(), equity.setScale(4, RoundingMode.HALF_UP)));
         }
@@ -137,6 +142,9 @@ public class SimulationEngine {
                 request.initialCash(),
                 endingEquity,
                 equityCurve,
+                trades,
+                exposureBars,
+                request.candles().size(),
                 trades.size(),
                 closedTrades,
                 winningClosedTrades
@@ -204,6 +212,9 @@ public class SimulationEngine {
             BigDecimal initialCash,
             BigDecimal endingEquity,
             List<EquityPoint> equityCurve,
+            List<Trade> trades,
+            int exposureBars,
+            int totalBars,
             int totalTrades,
             int closedTrades,
             int winningClosedTrades
@@ -216,14 +227,59 @@ public class SimulationEngine {
         double maxDrawdownPct = calculateMaxDrawdown(equityCurve);
         double sharpeRatio = calculateSharpeRatio(equityCurve);
         double winRatePct = closedTrades == 0 ? 0.0 : (winningClosedTrades * 100.0) / closedTrades;
+        TradeStatistics tradeStats = calculateTradeStatistics(trades, closedTrades, winningClosedTrades);
+        double exposureTimePct = totalBars == 0 ? 0.0 : (exposureBars * 100.0) / totalBars;
 
         return new PerformanceMetrics(
                 roundMetric(totalReturnPct),
                 roundMetric(maxDrawdownPct),
                 roundMetric(sharpeRatio),
                 roundMetric(winRatePct),
+                roundMetric(tradeStats.profitFactor()),
+                roundMetric(tradeStats.expectancy()),
+                roundMetric(tradeStats.averageWin()),
+                roundMetric(tradeStats.averageLoss()),
+                roundMetric(exposureTimePct),
                 totalTrades
         );
+    }
+
+    private TradeStatistics calculateTradeStatistics(List<Trade> trades, int closedTrades, int winningClosedTrades) {
+        BigDecimal grossProfit = BigDecimal.ZERO;
+        BigDecimal grossLossAbs = BigDecimal.ZERO;
+        BigDecimal totalClosedPnl = BigDecimal.ZERO;
+        BigDecimal totalLossPnl = BigDecimal.ZERO;
+        int losingClosedTrades = 0;
+
+        for (Trade trade : trades) {
+            if (trade.side() != OrderSide.SELL) {
+                continue;
+            }
+            BigDecimal pnl = trade.realizedPnl();
+            totalClosedPnl = totalClosedPnl.add(pnl);
+            if (pnl.compareTo(BigDecimal.ZERO) > 0) {
+                grossProfit = grossProfit.add(pnl);
+            } else if (pnl.compareTo(BigDecimal.ZERO) < 0) {
+                grossLossAbs = grossLossAbs.add(pnl.abs());
+                totalLossPnl = totalLossPnl.add(pnl);
+                losingClosedTrades++;
+            }
+        }
+
+        double profitFactor = grossLossAbs.compareTo(BigDecimal.ZERO) == 0
+                ? 0.0
+                : grossProfit.divide(grossLossAbs, 8, RoundingMode.HALF_UP).doubleValue();
+        double expectancy = closedTrades == 0
+                ? 0.0
+                : totalClosedPnl.divide(BigDecimal.valueOf(closedTrades), 8, RoundingMode.HALF_UP).doubleValue();
+        double averageWin = winningClosedTrades == 0
+                ? 0.0
+                : grossProfit.divide(BigDecimal.valueOf(winningClosedTrades), 8, RoundingMode.HALF_UP).doubleValue();
+        double averageLoss = losingClosedTrades == 0
+                ? 0.0
+                : totalLossPnl.divide(BigDecimal.valueOf(losingClosedTrades), 8, RoundingMode.HALF_UP).doubleValue();
+
+        return new TradeStatistics(profitFactor, expectancy, averageWin, averageLoss);
     }
 
     private double calculateMaxDrawdown(List<EquityPoint> equityCurve) {
@@ -285,5 +341,13 @@ public class SimulationEngine {
 
     private double roundMetric(double value) {
         return BigDecimal.valueOf(value).setScale(4, RoundingMode.HALF_UP).doubleValue();
+    }
+
+    private record TradeStatistics(
+            double profitFactor,
+            double expectancy,
+            double averageWin,
+            double averageLoss
+    ) {
     }
 }
