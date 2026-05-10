@@ -3,6 +3,8 @@ package com.tradingsim.api;
 import com.tradingsim.api.dto.BacktestRunResponse;
 import com.tradingsim.api.dto.CandleDto;
 import com.tradingsim.api.dto.CsvPreviewResponse;
+import com.tradingsim.api.dto.RunComparisonResponse;
+import com.tradingsim.api.dto.RunHistoryResponse;
 import com.tradingsim.application.SimulationService;
 import com.tradingsim.infrastructure.csv.CsvPreviewSummary;
 import com.tradingsim.strategy.MeanReversionConfig;
@@ -113,6 +115,30 @@ public class SimulationController {
     @GetMapping("/runs/{runId}")
     public BacktestRunResponse getRunById(@PathVariable("runId") @Positive long runId) {
         return simulationService.getRunById(runId);
+    }
+
+    /**
+     * Lists saved runs with optional symbol/strategy filtering.
+     */
+    @GetMapping("/runs")
+    public RunHistoryResponse listRuns(
+            @RequestParam(name = "page", defaultValue = "0") @Min(0) int page,
+            @RequestParam(name = "size", defaultValue = "20") @Min(1) int size,
+            @RequestParam(name = "symbol", defaultValue = "") String symbol,
+            @RequestParam(name = "strategy", defaultValue = "") String strategy
+    ) {
+        return simulationService.listRuns(page, size, symbol, strategy);
+    }
+
+    /**
+     * Compares two runs and returns metric deltas (right - left).
+     */
+    @GetMapping("/runs/compare")
+    public RunComparisonResponse compareRuns(
+            @RequestParam("leftRunId") @Positive long leftRunId,
+            @RequestParam("rightRunId") @Positive long rightRunId
+    ) {
+        return simulationService.compareRuns(leftRunId, rightRunId);
     }
 
     private StrategyConfig toStrategyConfig(

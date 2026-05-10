@@ -8,6 +8,8 @@ import java.util.List;
 
 public record BacktestRunResponse(
         Long runId,
+        LocalDateTime createdAt,
+        String symbol,
         String strategyName,
         BigDecimal startingCash,
         BigDecimal endingEquity,

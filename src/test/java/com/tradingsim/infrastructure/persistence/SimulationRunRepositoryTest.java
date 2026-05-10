@@ -4,6 +4,8 @@ import com.tradingsim.domain.OrderSide;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -63,5 +65,42 @@ class SimulationRunRepositoryTest {
         assertThat(loaded.getTrades()).hasSize(2);
         assertThat(loaded.getEquityPoints()).hasSize(2);
         assertThat(loaded.getEndingEquity()).isEqualByComparingTo("10200.0000");
+    }
+
+    @Test
+    void findAllBySymbolAndStrategy_filtersAndPaginates() {
+        simulationRunRepository.save(new SimulationRunEntity(
+                "AAPL",
+                "SMA(3,5)",
+                new BigDecimal("10000.0000"),
+                new BigDecimal("10100.0000"),
+                1.0,
+                0.5,
+                1.1,
+                55.0,
+                2
+        ));
+        simulationRunRepository.save(new SimulationRunEntity(
+                "MSFT",
+                "MeanReversion(8,1.5%)",
+                new BigDecimal("10000.0000"),
+                new BigDecimal("10300.0000"),
+                3.0,
+                1.2,
+                1.3,
+                60.0,
+                3
+        ));
+
+        Page<SimulationRunEntity> page = simulationRunRepository
+                .findAllBySymbolContainingIgnoreCaseAndStrategyNameContainingIgnoreCase(
+                        "AAP",
+                        "SMA",
+                        PageRequest.of(0, 10)
+                );
+
+        assertThat(page.getTotalElements()).isEqualTo(1);
+        assertThat(page.getContent().get(0).getSymbol()).isEqualTo("AAPL");
+        assertThat(page.getContent().get(0).getStrategyName()).startsWith("SMA");
     }
 }

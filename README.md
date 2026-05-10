@@ -36,6 +36,8 @@ This repository is designed to become a resume-quality software engineering proj
 - `POST /api/v1/simulations/csv/preview`
 - `POST /api/v1/simulations/csv/backtest`
 - `GET /api/v1/simulations/runs/{runId}`
+- `GET /api/v1/simulations/runs` (paged + filterable)
+- `GET /api/v1/simulations/runs/compare?leftRunId={id}&rightRunId={id}`
 
 ## Local setup
 
@@ -115,6 +117,18 @@ Backtest responses include `runId`, which can be used to fetch the saved run lat
 
 ```bash
 curl http://localhost:8080/api/v1/simulations/runs/1
+```
+
+List run history:
+
+```bash
+curl "http://localhost:8080/api/v1/simulations/runs?page=0&size=10&symbol=MSFT&strategy=mean"
+```
+
+Compare two runs (delta fields are `right - left`):
+
+```bash
+curl "http://localhost:8080/api/v1/simulations/runs/compare?leftRunId=1&rightRunId=2"
 ```
 
 ### Recommended real-world stock workflow (no API key)

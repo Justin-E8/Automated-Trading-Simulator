@@ -1,8 +1,10 @@
 package com.tradingsim.application;
 
 import com.tradingsim.api.dto.BacktestRunResponse;
+import com.tradingsim.api.dto.RunComparisonResponse;
+import com.tradingsim.api.dto.RunHistoryResponse;
+import com.tradingsim.api.dto.RunSummaryResponse;
 import com.tradingsim.domain.Candle;
-import com.tradingsim.engine.EquityPoint;
 import com.tradingsim.engine.SimulationEngine;
 import com.tradingsim.engine.SimulationRequest;
 import com.tradingsim.engine.SimulationResult;
@@ -15,6 +17,9 @@ import com.tradingsim.infrastructure.persistence.SimulationTradeEntity;
 import com.tradingsim.strategy.StrategyConfig;
 import com.tradingsim.strategy.StrategyFactory;
 import com.tradingsim.strategy.TradingStrategy;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
@@ -92,9 +97,62 @@ public class SimulationService {
      */
     @Transactional(readOnly = true)
     public BacktestRunResponse getRunById(long runId) {
-        SimulationRunEntity run = simulationRunRepository.findById(runId)
-                .orElseThrow(() -> new IllegalArgumentException("Simulation run not found for id=" + runId));
+        SimulationRunEntity run = loadRun(runId);
         return toBacktestRunResponse(run);
+    }
+
+    /**
+     * Lists saved runs with optional symbol/strategy filters.
+     */
+    @Transactional(readOnly = true)
+    public RunHistoryResponse listRuns(int page, int size, String symbolFilter, String strategyFilter) {
+        if (page < 0) {
+            throw new IllegalArgumentException("page must be >= 0.");
+        }
+        if (size < 1 || size > 100) {
+            throw new IllegalArgumentException("size must be between 1 and 100.");
+        }
+        String symbol = symbolFilter == null ? "" : symbolFilter.trim();
+        String strategy = strategyFilter == null ? "" : strategyFilter.trim();
+
+        Page<SimulationRunEntity> runs = simulationRunRepository.findAllBySymbolContainingIgnoreCaseAndStrategyNameContainingIgnoreCase(
+                symbol,
+                strategy,
+                PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "createdAt"))
+        );
+
+        return new RunHistoryResponse(
+                runs.getNumber(),
+                runs.getSize(),
+                runs.getTotalElements(),
+                runs.getTotalPages(),
+                runs.getContent().stream().map(this::toRunSummary).toList()
+        );
+    }
+
+    /**
+     * Compares two stored runs and returns metric deltas (right - left).
+     */
+    @Transactional(readOnly = true)
+    public RunComparisonResponse compareRuns(long leftRunId, long rightRunId) {
+        if (leftRunId == rightRunId) {
+            throw new IllegalArgumentException("leftRunId and rightRunId must be different.");
+        }
+        SimulationRunEntity leftRun = loadRun(leftRunId);
+        SimulationRunEntity rightRun = loadRun(rightRunId);
+
+        return new RunComparisonResponse(
+                toRunSummary(leftRun),
+                toRunSummary(rightRun),
+                new RunComparisonResponse.DeltaMetrics(
+                        rightRun.getEndingEquity().subtract(leftRun.getEndingEquity()).doubleValue(),
+                        rightRun.getTotalReturnPct() - leftRun.getTotalReturnPct(),
+                        rightRun.getMaxDrawdownPct() - leftRun.getMaxDrawdownPct(),
+                        rightRun.getSharpeRatio() - leftRun.getSharpeRatio(),
+                        rightRun.getWinRatePct() - leftRun.getWinRatePct(),
+                        rightRun.getTradeCount() - leftRun.getTradeCount()
+                )
+        );
     }
 
     private BacktestRunResponse runBacktestWithCandles(
@@ -127,7 +185,7 @@ public class SimulationService {
 
         SimulationResult result = simulationEngine.run(simulationRequest, selectedStrategy);
         SimulationRunEntity persistedRun = persistRun(result, symbol);
-        return toBacktestRunResponse(persistedRun.getId(), result);
+        return toBacktestRunResponse(persistedRun);
     }
 
     private SimulationRunEntity persistRun(SimulationResult result, String symbol) {
@@ -158,37 +216,11 @@ public class SimulationService {
         return simulationRunRepository.save(run);
     }
 
-    private BacktestRunResponse toBacktestRunResponse(Long runId, SimulationResult result) {
-        return new BacktestRunResponse(
-                runId,
-                result.strategyName(),
-                result.startingCash(),
-                result.endingEquity(),
-                new BacktestRunResponse.MetricsDto(
-                        result.metrics().totalReturnPct(),
-                        result.metrics().maxDrawdownPct(),
-                        result.metrics().sharpeRatio(),
-                        result.metrics().winRatePct(),
-                        result.metrics().tradeCount()
-                ),
-                result.trades().stream().map(trade ->
-                        new BacktestRunResponse.TradeDto(
-                                trade.timestamp(),
-                                trade.symbol(),
-                                trade.side(),
-                                trade.quantity(),
-                                trade.price(),
-                                trade.fee(),
-                                trade.realizedPnl()
-                        )
-                ).toList(),
-                result.equityCurve().stream().map(this::toEquityPointDto).toList()
-        );
-    }
-
     private BacktestRunResponse toBacktestRunResponse(SimulationRunEntity run) {
         return new BacktestRunResponse(
                 run.getId(),
+                run.getCreatedAt(),
+                run.getSymbol(),
                 run.getStrategyName(),
                 run.getStartingCash(),
                 run.getEndingEquity(),
@@ -204,6 +236,27 @@ public class SimulationService {
         );
     }
 
+    private RunSummaryResponse toRunSummary(SimulationRunEntity run) {
+        return new RunSummaryResponse(
+                run.getId(),
+                run.getCreatedAt(),
+                run.getSymbol(),
+                run.getStrategyName(),
+                run.getStartingCash(),
+                run.getEndingEquity(),
+                run.getTotalReturnPct(),
+                run.getMaxDrawdownPct(),
+                run.getSharpeRatio(),
+                run.getWinRatePct(),
+                run.getTradeCount()
+        );
+    }
+
+    private SimulationRunEntity loadRun(long runId) {
+        return simulationRunRepository.findById(runId)
+                .orElseThrow(() -> new IllegalArgumentException("Simulation run not found for id=" + runId));
+    }
+
     private BacktestRunResponse.TradeDto toTradeDto(SimulationTradeEntity trade) {
         return new BacktestRunResponse.TradeDto(
                 trade.getTimestamp(),
@@ -214,10 +267,6 @@ public class SimulationService {
                 trade.getFee(),
                 trade.getRealizedPnl()
         );
-    }
-
-    private BacktestRunResponse.EquityPointDto toEquityPointDto(EquityPoint point) {
-        return new BacktestRunResponse.EquityPointDto(point.timestamp(), point.equity());
     }
 
     private BacktestRunResponse.EquityPointDto toEquityPointDto(SimulationEquityPointEntity point) {
