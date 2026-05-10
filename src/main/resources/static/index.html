@@ -54,74 +54,51 @@
     </div>
 
     <div id="smaParams" class="form-grid strategy-group">
-      <label for="shortWindow">Short SMA Window</label>
+      <div class="label-with-info">
+        <label for="shortWindow">Short SMA Window</label>
+        <button
+                type="button"
+                class="info-trigger"
+                data-info="Short SMA uses fewer recent candles, so it reacts faster to price changes."
+                aria-label="What is short SMA window?"
+        >i</button>
+      </div>
       <input id="shortWindow" type="number" step="1" min="2" value="3">
 
-      <label for="longWindow">Long SMA Window</label>
+      <div class="label-with-info">
+        <label for="longWindow">Long SMA Window</label>
+        <button
+                type="button"
+                class="info-trigger"
+                data-info="Long SMA averages more candles, so it moves slower and represents broader trend direction."
+                aria-label="What is long SMA window?"
+        >i</button>
+      </div>
       <input id="longWindow" type="number" step="1" min="3" value="5">
     </div>
 
     <div id="meanReversionParams" class="form-grid strategy-group hidden">
-      <label for="meanReversionWindow">Mean Reversion Window</label>
+      <div class="label-with-info">
+        <label for="meanReversionWindow">Mean Reversion Window</label>
+        <button
+                type="button"
+                class="info-trigger"
+                data-info="Mean reversion window controls how many candles are used to estimate the average price baseline."
+                aria-label="What is mean reversion window?"
+        >i</button>
+      </div>
       <input id="meanReversionWindow" type="number" step="1" min="2" value="10">
 
-      <label for="meanReversionThresholdPct">Deviation Threshold (%)</label>
+      <div class="label-with-info">
+        <label for="meanReversionThresholdPct">Deviation Threshold (%)</label>
+        <button
+                type="button"
+                class="info-trigger"
+                data-info="Threshold percent is how far price must move away from the average before the strategy acts."
+                aria-label="What is deviation threshold?"
+        >i</button>
+      </div>
       <input id="meanReversionThresholdPct" type="number" step="0.1" min="0.1" value="2.0">
-    </div>
-
-    <hr class="section-divider">
-    <h3>Parameter Sweep (Grid Search)</h3>
-    <p class="help-text">Evaluate many parameter combinations and rank the best results.</p>
-
-    <div class="form-grid strategy-group">
-      <label for="sweepOptimizeFor">Optimize For</label>
-      <select id="sweepOptimizeFor">
-        <option value="total-return-pct" selected>Total Return %</option>
-        <option value="max-drawdown-pct">Min Max Drawdown %</option>
-        <option value="sharpe-ratio">Sharpe Ratio</option>
-        <option value="win-rate-pct">Win Rate %</option>
-        <option value="profit-factor">Profit Factor</option>
-        <option value="expectancy">Expectancy</option>
-      </select>
-
-      <label for="sweepMaxResults">Top Results To Return</label>
-      <input id="sweepMaxResults" type="number" step="1" min="1" max="50" value="10">
-    </div>
-
-    <div id="sweepSmaParams" class="form-grid strategy-group">
-      <label for="sweepShortStart">SMA Short Start</label>
-      <input id="sweepShortStart" type="number" step="1" min="2" value="2">
-      <label for="sweepShortEnd">SMA Short End</label>
-      <input id="sweepShortEnd" type="number" step="1" min="2" value="10">
-      <label for="sweepShortStep">SMA Short Step</label>
-      <input id="sweepShortStep" type="number" step="1" min="1" value="1">
-
-      <label for="sweepLongStart">SMA Long Start</label>
-      <input id="sweepLongStart" type="number" step="1" min="3" value="5">
-      <label for="sweepLongEnd">SMA Long End</label>
-      <input id="sweepLongEnd" type="number" step="1" min="3" value="20">
-      <label for="sweepLongStep">SMA Long Step</label>
-      <input id="sweepLongStep" type="number" step="1" min="1" value="1">
-    </div>
-
-    <div id="sweepMeanReversionParams" class="form-grid strategy-group hidden">
-      <label for="sweepMeanWindowStart">Mean Reversion Window Start</label>
-      <input id="sweepMeanWindowStart" type="number" step="1" min="2" value="5">
-      <label for="sweepMeanWindowEnd">Mean Reversion Window End</label>
-      <input id="sweepMeanWindowEnd" type="number" step="1" min="2" value="20">
-      <label for="sweepMeanWindowStep">Mean Reversion Window Step</label>
-      <input id="sweepMeanWindowStep" type="number" step="1" min="1" value="1">
-
-      <label for="sweepMeanThresholdStart">Threshold Start (%)</label>
-      <input id="sweepMeanThresholdStart" type="number" step="0.1" min="0.1" value="0.5">
-      <label for="sweepMeanThresholdEnd">Threshold End (%)</label>
-      <input id="sweepMeanThresholdEnd" type="number" step="0.1" min="0.1" value="3.0">
-      <label for="sweepMeanThresholdStep">Threshold Step (%)</label>
-      <input id="sweepMeanThresholdStep" type="number" step="0.1" min="0.1" value="0.5">
-    </div>
-
-    <div class="button-row">
-      <button id="runSweepButton" type="button">Run Parameter Sweep</button>
     </div>
 
     <hr class="section-divider">
@@ -149,6 +126,62 @@
 
     <label for="candlesInput">Parsed Candle Preview (from uploaded CSV)</label>
     <textarea id="candlesInput" rows="12" spellcheck="false" readonly></textarea>
+
+    <details class="advanced-section">
+      <summary>Advanced: Parameter Sweep (Grid Search)</summary>
+      <p class="help-text">Evaluate many parameter combinations and rank the best results.</p>
+
+      <div class="form-grid strategy-group">
+        <label for="sweepOptimizeFor">Optimize For</label>
+        <select id="sweepOptimizeFor">
+          <option value="total-return-pct" selected>Total Return %</option>
+          <option value="max-drawdown-pct">Min Max Drawdown %</option>
+          <option value="sharpe-ratio">Sharpe Ratio</option>
+          <option value="win-rate-pct">Win Rate %</option>
+          <option value="profit-factor">Profit Factor</option>
+          <option value="expectancy">Expectancy</option>
+        </select>
+
+        <label for="sweepMaxResults">Top Results To Return</label>
+        <input id="sweepMaxResults" type="number" step="1" min="1" max="50" value="10">
+      </div>
+
+      <div id="sweepSmaParams" class="form-grid strategy-group">
+        <label for="sweepShortStart">SMA Short Start</label>
+        <input id="sweepShortStart" type="number" step="1" min="2" value="2">
+        <label for="sweepShortEnd">SMA Short End</label>
+        <input id="sweepShortEnd" type="number" step="1" min="2" value="10">
+        <label for="sweepShortStep">SMA Short Step</label>
+        <input id="sweepShortStep" type="number" step="1" min="1" value="1">
+
+        <label for="sweepLongStart">SMA Long Start</label>
+        <input id="sweepLongStart" type="number" step="1" min="3" value="5">
+        <label for="sweepLongEnd">SMA Long End</label>
+        <input id="sweepLongEnd" type="number" step="1" min="3" value="20">
+        <label for="sweepLongStep">SMA Long Step</label>
+        <input id="sweepLongStep" type="number" step="1" min="1" value="1">
+      </div>
+
+      <div id="sweepMeanReversionParams" class="form-grid strategy-group hidden">
+        <label for="sweepMeanWindowStart">Mean Reversion Window Start</label>
+        <input id="sweepMeanWindowStart" type="number" step="1" min="2" value="5">
+        <label for="sweepMeanWindowEnd">Mean Reversion Window End</label>
+        <input id="sweepMeanWindowEnd" type="number" step="1" min="2" value="20">
+        <label for="sweepMeanWindowStep">Mean Reversion Window Step</label>
+        <input id="sweepMeanWindowStep" type="number" step="1" min="1" value="1">
+
+        <label for="sweepMeanThresholdStart">Threshold Start (%)</label>
+        <input id="sweepMeanThresholdStart" type="number" step="0.1" min="0.1" value="0.5">
+        <label for="sweepMeanThresholdEnd">Threshold End (%)</label>
+        <input id="sweepMeanThresholdEnd" type="number" step="0.1" min="0.1" value="3.0">
+        <label for="sweepMeanThresholdStep">Threshold Step (%)</label>
+        <input id="sweepMeanThresholdStep" type="number" step="0.1" min="0.1" value="0.5">
+      </div>
+
+      <div class="button-row">
+        <button id="runSweepButton" type="button">Run Parameter Sweep</button>
+      </div>
+    </details>
   </section>
 
   <section class="card results">
@@ -157,59 +190,101 @@
 
     <div class="metrics-grid">
       <div class="metric">
-        <span class="metric-label">Run ID</span>
+        <div class="metric-header">
+          <span class="metric-label">Run ID</span>
+          <button type="button" class="info-trigger metric-info" data-info="Unique identifier for this saved backtest run.">i</button>
+        </div>
         <span id="metricRunId" class="metric-value">-</span>
       </div>
       <div class="metric">
-        <span class="metric-label">Strategy</span>
+        <div class="metric-header">
+          <span class="metric-label">Strategy</span>
+          <button type="button" class="info-trigger metric-info" data-info="The strategy and settings used when this run was executed.">i</button>
+        </div>
         <span id="metricStrategy" class="metric-value">-</span>
       </div>
       <div class="metric">
-        <span class="metric-label">Start Cash</span>
+        <div class="metric-header">
+          <span class="metric-label">Start Cash</span>
+          <button type="button" class="info-trigger metric-info" data-info="Starting capital before any trades are placed.">i</button>
+        </div>
         <span id="metricStartCash" class="metric-value">-</span>
       </div>
       <div class="metric">
-        <span class="metric-label">End Equity</span>
+        <div class="metric-header">
+          <span class="metric-label">End Equity</span>
+          <button type="button" class="info-trigger metric-info" data-info="Final account value: cash + open position value at the last candle.">i</button>
+        </div>
         <span id="metricEndEquity" class="metric-value">-</span>
       </div>
       <div class="metric">
-        <span class="metric-label">Total Return %</span>
+        <div class="metric-header">
+          <span class="metric-label">Total Return %</span>
+          <button type="button" class="info-trigger metric-info" data-info="Percent gain or loss from start cash to end equity.">i</button>
+        </div>
         <span id="metricTotalReturn" class="metric-value">-</span>
       </div>
       <div class="metric">
-        <span class="metric-label">Max Drawdown %</span>
+        <div class="metric-header">
+          <span class="metric-label">Max Drawdown %</span>
+          <button type="button" class="info-trigger metric-info" data-info="Largest peak-to-trough decline in equity during the run. Lower is usually better.">i</button>
+        </div>
         <span id="metricMaxDrawdown" class="metric-value">-</span>
       </div>
       <div class="metric">
-        <span class="metric-label">Sharpe Ratio</span>
+        <div class="metric-header">
+          <span class="metric-label">Sharpe Ratio</span>
+          <button type="button" class="info-trigger metric-info" data-info="Risk-adjusted return score. Higher generally means better return per unit of volatility.">i</button>
+        </div>
         <span id="metricSharpe" class="metric-value">-</span>
       </div>
       <div class="metric">
-        <span class="metric-label">Win Rate %</span>
+        <div class="metric-header">
+          <span class="metric-label">Win Rate %</span>
+          <button type="button" class="info-trigger metric-info" data-info="Percent of closed trades that were profitable.">i</button>
+        </div>
         <span id="metricWinRate" class="metric-value">-</span>
       </div>
       <div class="metric">
-        <span class="metric-label">Profit Factor</span>
+        <div class="metric-header">
+          <span class="metric-label">Profit Factor</span>
+          <button type="button" class="info-trigger metric-info" data-info="Gross profit divided by gross loss. Above 1.0 means profits exceed losses.">i</button>
+        </div>
         <span id="metricProfitFactor" class="metric-value">-</span>
       </div>
       <div class="metric">
-        <span class="metric-label">Expectancy</span>
+        <div class="metric-header">
+          <span class="metric-label">Expectancy</span>
+          <button type="button" class="info-trigger metric-info" data-info="Average expected PnL per closed trade. Positive means edge over time.">i</button>
+        </div>
         <span id="metricExpectancy" class="metric-value">-</span>
       </div>
       <div class="metric">
-        <span class="metric-label">Average Win</span>
+        <div class="metric-header">
+          <span class="metric-label">Average Win</span>
+          <button type="button" class="info-trigger metric-info" data-info="Average PnL of winning closed trades.">i</button>
+        </div>
         <span id="metricAverageWin" class="metric-value">-</span>
       </div>
       <div class="metric">
-        <span class="metric-label">Average Loss</span>
+        <div class="metric-header">
+          <span class="metric-label">Average Loss</span>
+          <button type="button" class="info-trigger metric-info" data-info="Average PnL of losing closed trades (usually negative).">i</button>
+        </div>
         <span id="metricAverageLoss" class="metric-value">-</span>
       </div>
       <div class="metric">
-        <span class="metric-label">Exposure Time %</span>
+        <div class="metric-header">
+          <span class="metric-label">Exposure Time %</span>
+          <button type="button" class="info-trigger metric-info" data-info="Percentage of candles where a position was open.">i</button>
+        </div>
         <span id="metricExposureTime" class="metric-value">-</span>
       </div>
       <div class="metric">
-        <span class="metric-label">Trade Count</span>
+        <div class="metric-header">
+          <span class="metric-label">Trade Count</span>
+          <button type="button" class="info-trigger metric-info" data-info="Number of trade events generated (buys and sells).">i</button>
+        </div>
         <span id="metricTradeCount" class="metric-value">-</span>
       </div>
     </div>
@@ -304,6 +379,8 @@
     </div>
   </section>
 </main>
+
+<div id="infoPopover" class="info-popover hidden" role="dialog" aria-live="polite"></div>
 
 <script src="/app.js"></script>
 </body>

@@ -18,11 +18,13 @@ const leftRunIdInput = document.getElementById("leftRunIdInput");
 const rightRunIdInput = document.getElementById("rightRunIdInput");
 const compareRunsButton = document.getElementById("compareRunsButton");
 const comparisonSummary = document.getElementById("comparisonSummary");
+const infoPopover = document.getElementById("infoPopover");
 
 const historyState = {
   page: 0,
   totalPages: 0
 };
+let activeInfoButton = null;
 
 function ensureElement(element, name) {
   if (!element) {
@@ -87,6 +89,30 @@ function toIsoDateTime(value) {
     return value;
   }
   return parsed.toLocaleString();
+}
+
+function hideInfoPopover() {
+  const popover = ensureElement(infoPopover, "infoPopover");
+  popover.classList.add("hidden");
+  popover.textContent = "";
+  activeInfoButton = null;
+}
+
+function showInfoPopover(button) {
+  const popover = ensureElement(infoPopover, "infoPopover");
+  const message = button.dataset.info || "No additional info available.";
+  popover.textContent = message;
+  popover.classList.remove("hidden");
+
+  const rect = button.getBoundingClientRect();
+  const viewportWidth = window.innerWidth;
+  const maxLeft = Math.max(12, viewportWidth - popover.offsetWidth - 12);
+  const left = Math.min(maxLeft, Math.max(12, rect.left + window.scrollX - (popover.offsetWidth / 2) + (rect.width / 2)));
+  const top = rect.bottom + window.scrollY + 8;
+
+  popover.style.left = `${left}px`;
+  popover.style.top = `${top}px`;
+  activeInfoButton = button;
 }
 
 function baseParameters() {
@@ -592,6 +618,28 @@ ensureElement(csvFileInput, "csvFileInput").addEventListener("change", () => {
     setStatus(`Selected CSV: ${file.name}`, "info");
   } catch (error) {
     setStatus("Choose a CSV file first.", "error");
+  }
+});
+document.addEventListener("click", (event) => {
+  const trigger = event.target.closest(".info-trigger");
+  if (trigger) {
+    event.preventDefault();
+    if (activeInfoButton === trigger) {
+      hideInfoPopover();
+      return;
+    }
+    showInfoPopover(trigger);
+    return;
+  }
+  if (activeInfoButton && !event.target.closest("#infoPopover")) {
+    hideInfoPopover();
+  }
+});
+window.addEventListener("resize", hideInfoPopover);
+window.addEventListener("scroll", hideInfoPopover, true);
+document.addEventListener("keydown", (event) => {
+  if (event.key === "Escape") {
+    hideInfoPopover();
   }
 });
 

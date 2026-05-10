@@ -68,6 +68,10 @@ body {
   margin: 0 0 0.5rem;
 }
 
+.card h3 {
+  margin-top: 1rem;
+}
+
 .help-text {
   margin: 0 0 1rem;
   color: #475569;
@@ -90,6 +94,13 @@ body {
 label {
   font-weight: 600;
   margin-top: 0.3rem;
+}
+
+.label-with-info {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.45rem;
 }
 
 input,
@@ -138,6 +149,23 @@ button {
 
 button:hover {
   background: #1e40af;
+}
+
+.info-trigger {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  border: 1px solid #93c5fd;
+  background: #eff6ff;
+  color: #1d4ed8;
+  font-size: 0.78rem;
+  font-weight: 700;
+  line-height: 1;
+  padding: 0;
+}
+
+.info-trigger:hover {
+  background: #dbeafe;
 }
 
 .csv-preview {
@@ -189,6 +217,25 @@ button:hover {
   background: #1e293b;
 }
 
+.advanced-section {
+  margin-top: 0.75rem;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  background: #f8fafc;
+  padding: 0.75rem;
+}
+
+.advanced-section summary {
+  cursor: pointer;
+  font-weight: 700;
+  color: #1e293b;
+  margin-bottom: 0.75rem;
+}
+
+.advanced-section[open] summary {
+  margin-bottom: 0.85rem;
+}
+
 .metrics-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
@@ -201,6 +248,13 @@ button:hover {
   border: 1px solid #e2e8f0;
   border-radius: 8px;
   padding: 0.55rem;
+}
+
+.metric-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.45rem;
 }
 
 .metric-label {
@@ -241,6 +295,19 @@ td {
 
 th {
   background: #f8fafc;
+}
+
+.info-popover {
+  position: absolute;
+  z-index: 1000;
+  max-width: 300px;
+  background: #0f172a;
+  color: #f8fafc;
+  border-radius: 8px;
+  padding: 0.65rem 0.75rem;
+  font-size: 0.86rem;
+  line-height: 1.35;
+  box-shadow: 0 12px 28px rgba(15, 23, 42, 0.24);
 }
 
 @media (max-width: 1100px) {
