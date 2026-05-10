@@ -1,16 +1,37 @@
 const statusMessage = document.getElementById("statusMessage");
 const candlesInput = document.getElementById("candlesInput");
 const tradesTableBody = document.getElementById("tradesTableBody");
-const rawResponse = document.getElementById("rawResponse");
 const equityCanvas = document.getElementById("equityCanvas");
 const csvFileInput = document.getElementById("csvFileInput");
-const marketStartDateInput = document.getElementById("marketStartDate");
-const marketEndDateInput = document.getElementById("marketEndDate");
-const marketIntervalInput = document.getElementById("marketInterval");
 
-function setStatus(message, isError = false) {
-  statusMessage.textContent = message;
-  statusMessage.style.color = isError ? "#b91c1c" : "#1f2937";
+function ensureElement(element, name) {
+  if (!element) {
+    throw new Error(`UI setup error: missing element '${name}'. Refresh the page and try again.`);
+  }
+  return element;
+}
+
+function parseJsonOrThrow(text, fallbackMessage) {
+  if (!text) {
+    return {};
+  }
+  try {
+    return JSON.parse(text);
+  } catch (error) {
+    throw new Error(fallbackMessage);
+  }
+}
+
+async function readResponseBody(response, fallbackMessage) {
+  const text = await response.text();
+  return parseJsonOrThrow(text, fallbackMessage);
+}
+
+function setStatus(message, type = "info") {
+  const banner = ensureElement(statusMessage, "statusMessage");
+  banner.textContent = message;
+  banner.classList.remove("status-info", "status-success", "status-error");
+  banner.classList.add(`status-${type}`);
 }
 
 function formatNumber(value, digits = 2) {
@@ -18,38 +39,6 @@ function formatNumber(value, digits = 2) {
     minimumFractionDigits: digits,
     maximumFractionDigits: digits
   });
-}
-
-async function loadSampleCandles() {
-  setStatus("Loading sample candles...");
-  try {
-    const response = await fetch("/api/v1/simulations/sample-candles");
-    if (!response.ok) {
-      throw new Error("Failed to fetch sample candles.");
-    }
-    const candles = await response.json();
-    candlesInput.value = JSON.stringify(candles, null, 2);
-    setStatus(`Loaded ${candles.length} sample candles.`);
-  } catch (error) {
-    setStatus(error.message, true);
-  }
-}
-
-function buildRequestPayload() {
-  const candles = JSON.parse(candlesInput.value);
-  if (!Array.isArray(candles) || candles.length === 0) {
-    throw new Error("Candles JSON must be a non-empty array.");
-  }
-
-  return {
-    symbol: document.getElementById("symbol").value.trim(),
-    initialCash: Number(document.getElementById("initialCash").value),
-    quantityPerTrade: Number(document.getElementById("quantityPerTrade").value),
-    feeBps: Number(document.getElementById("feeBps").value),
-    shortWindow: Number(document.getElementById("shortWindow").value),
-    longWindow: Number(document.getElementById("longWindow").value),
-    candles
-  };
 }
 
 function baseParameters() {
@@ -63,17 +52,9 @@ function baseParameters() {
   };
 }
 
-function marketDataParameters() {
-  return {
-    symbol: document.getElementById("symbol").value.trim(),
-    startDate: marketStartDateInput.value,
-    endDate: marketEndDateInput.value,
-    interval: marketIntervalInput.value
-  };
-}
-
 function selectedCsvFile() {
-  const file = csvFileInput.files && csvFileInput.files[0];
+  const fileInput = ensureElement(csvFileInput, "csvFileInput");
+  const file = fileInput.files && fileInput.files[0];
   if (!file) {
     throw new Error("Choose a CSV file first.");
   }
@@ -82,9 +63,8 @@ function selectedCsvFile() {
 
 function buildCsvFormData() {
   const params = baseParameters();
-  const file = selectedCsvFile();
   const formData = new FormData();
-  formData.append("file", file);
+  formData.append("file", selectedCsvFile());
   formData.append("symbol", params.symbol);
   formData.append("initialCash", String(params.initialCash));
   formData.append("quantityPerTrade", String(params.quantityPerTrade));
@@ -94,56 +74,29 @@ function buildCsvFormData() {
   return formData;
 }
 
-function updateMarketPreview(response) {
-  document.getElementById("marketProvider").textContent = response.provider;
-  document.getElementById("marketCached").textContent = response.cached ? "Yes" : "No";
-  document.getElementById("marketCount").textContent = String(response.candleCount);
-  document.getElementById("marketStart").textContent = response.startTimestamp;
-  document.getElementById("marketEnd").textContent = response.endTimestamp;
-}
-
-async function runBacktest() {
-  setStatus("Running backtest...");
-  try {
-    const payload = buildRequestPayload();
-    const response = await fetch("/api/v1/simulations/backtest", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload)
-    });
-
-    const body = await response.json();
-    if (!response.ok) {
-      throw new Error(body.error || "Backtest request failed.");
-    }
-
-    renderResult(body);
-    setStatus("Backtest complete.");
-  } catch (error) {
-    setStatus(error.message, true);
-  }
+function initializeCsvPreview() {
+  // CSV-only workflow no longer preloads sample JSON.
+  ensureElement(candlesInput, "candlesInput").value = "Upload a CSV and click Preview CSV.";
 }
 
 async function previewCsv() {
   setStatus("Previewing CSV...");
   try {
-    const file = selectedCsvFile();
     const formData = new FormData();
-    formData.append("file", file);
-
+    formData.append("file", selectedCsvFile());
     const response = await fetch("/api/v1/simulations/csv/preview", {
       method: "POST",
       body: formData
     });
-    const body = await response.json();
+    const body = await readResponseBody(response, "Server returned invalid preview response.");
     if (!response.ok) {
       throw new Error(body.error || "CSV preview failed.");
     }
 
     renderCsvPreview(body);
-    setStatus("CSV preview ready.");
+    setStatus("CSV preview ready.", "success");
   } catch (error) {
-    setStatus(error.message, true);
+    setStatus(error.message, "error");
   }
 }
 
@@ -154,64 +107,15 @@ async function runCsvBacktest() {
       method: "POST",
       body: buildCsvFormData()
     });
-    const body = await response.json();
+    const body = await readResponseBody(response, "Server returned invalid backtest response.");
     if (!response.ok) {
       throw new Error(body.error || "CSV backtest failed.");
     }
 
     renderResult(body);
-    setStatus("CSV backtest complete.");
+    setStatus("CSV backtest complete.", "success");
   } catch (error) {
-    setStatus(error.message, true);
-  }
-}
-
-async function fetchMarketData() {
-  setStatus("Fetching market data...");
-  try {
-    const response = await fetch("/api/v1/simulations/market-data/fetch", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(marketDataParameters())
-    });
-    const body = await response.json();
-    if (!response.ok) {
-      throw new Error(body.error || "Market data fetch failed.");
-    }
-
-    updateMarketPreview(body);
-    if (Array.isArray(body.sampleCandles) && body.sampleCandles.length > 0) {
-      candlesInput.value = JSON.stringify(body.sampleCandles, null, 2);
-    }
-    rawResponse.textContent = JSON.stringify(body, null, 2);
-    setStatus("Market data fetched successfully.");
-  } catch (error) {
-    setStatus(error.message, true);
-  }
-}
-
-async function runMarketBacktest() {
-  setStatus("Running market data backtest...");
-  try {
-    const payload = {
-      ...baseParameters(),
-      ...marketDataParameters()
-    };
-
-    const response = await fetch("/api/v1/simulations/market-data/backtest", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload)
-    });
-    const body = await response.json();
-    if (!response.ok) {
-      throw new Error(body.error || "Market-data backtest failed.");
-    }
-
-    renderResult(body);
-    setStatus("Market-data backtest complete.");
-  } catch (error) {
-    setStatus(error.message, true);
+    setStatus(error.message, "error");
   }
 }
 
@@ -227,7 +131,6 @@ function renderResult(result) {
 
   renderTrades(result.trades);
   renderEquityCurve(result.equityCurve);
-  rawResponse.textContent = JSON.stringify(result, null, 2);
 }
 
 function renderCsvPreview(preview) {
@@ -244,11 +147,11 @@ function renderCsvPreview(preview) {
 
 function renderTrades(trades) {
   if (!Array.isArray(trades) || trades.length === 0) {
-    tradesTableBody.innerHTML = "<tr><td colspan=\"6\">No trades generated.</td></tr>";
+    ensureElement(tradesTableBody, "tradesTableBody").innerHTML = "<tr><td colspan=\"6\">No trades generated.</td></tr>";
     return;
   }
 
-  tradesTableBody.innerHTML = "";
+  ensureElement(tradesTableBody, "tradesTableBody").innerHTML = "";
   trades.forEach((trade) => {
     const row = document.createElement("tr");
     row.innerHTML = `
@@ -259,14 +162,15 @@ function renderTrades(trades) {
       <td>${formatNumber(trade.fee, 4)}</td>
       <td>${formatNumber(trade.realizedPnl, 4)}</td>
     `;
-    tradesTableBody.appendChild(row);
+    ensureElement(tradesTableBody, "tradesTableBody").appendChild(row);
   });
 }
 
 function renderEquityCurve(points) {
-  const ctx = equityCanvas.getContext("2d");
-  const width = equityCanvas.width;
-  const height = equityCanvas.height;
+  const canvas = ensureElement(equityCanvas, "equityCanvas");
+  const ctx = canvas.getContext("2d");
+  const width = canvas.width;
+  const height = canvas.height;
 
   ctx.clearRect(0, 0, width, height);
   ctx.fillStyle = "#ffffff";
@@ -320,11 +224,15 @@ function renderEquityCurve(points) {
   ctx.stroke();
 }
 
-document.getElementById("loadSampleButton").addEventListener("click", loadSampleCandles);
-document.getElementById("runBacktestButton").addEventListener("click", runBacktest);
 document.getElementById("previewCsvButton").addEventListener("click", previewCsv);
 document.getElementById("runCsvBacktestButton").addEventListener("click", runCsvBacktest);
-document.getElementById("fetchMarketDataButton").addEventListener("click", fetchMarketData);
-document.getElementById("runMarketBacktestButton").addEventListener("click", runMarketBacktest);
+ensureElement(csvFileInput, "csvFileInput").addEventListener("change", () => {
+  try {
+    const file = selectedCsvFile();
+    setStatus(`Selected CSV: ${file.name}`, "info");
+  } catch (error) {
+    setStatus("Choose a CSV file first.", "error");
+  }
+});
 
-loadSampleCandles();
+initializeCsvPreview();

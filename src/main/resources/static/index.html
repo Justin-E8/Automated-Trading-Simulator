@@ -10,6 +10,7 @@
 <header class="page-header">
   <h1>Automated Trading Simulator</h1>
   <p class="subtitle">Backend-first simulation UI for understanding strategy behavior.</p>
+  <div id="statusMessage" class="status-banner status-info">Ready.</div>
 </header>
 
 <main class="layout">
@@ -37,11 +38,6 @@
       <input id="longWindow" type="number" step="1" min="3" value="5">
     </div>
 
-    <div class="button-row">
-      <button id="loadSampleButton" type="button">Load Sample Candles</button>
-      <button id="runBacktestButton" type="button">Run Backtest</button>
-    </div>
-
     <hr class="section-divider">
     <h3>CSV Upload Mode (Recommended)</h3>
     <p class="help-text">
@@ -65,37 +61,8 @@
       <p><strong>Max Close:</strong> <span id="csvPreviewMaxClose">-</span></p>
     </div>
 
-    <hr class="section-divider">
-    <h3>Market Data Mode (Optional)</h3>
-    <p class="help-text">API-based fetch by symbol/date range. Requires provider API key and may have provider limits.</p>
-
-    <label for="marketStartDate">Start Date</label>
-    <input id="marketStartDate" type="date" value="2025-01-01">
-
-    <label for="marketEndDate">End Date</label>
-    <input id="marketEndDate" type="date" value="2025-01-20">
-
-    <label for="marketInterval">Interval</label>
-    <select id="marketInterval">
-      <option value="1d" selected>1d (daily)</option>
-    </select>
-
-    <div class="button-row">
-      <button id="fetchMarketDataButton" type="button">Fetch Market Data</button>
-      <button id="runMarketBacktestButton" type="button">Run Backtest from Market Data</button>
-    </div>
-
-    <div class="csv-preview">
-      <p><strong>Provider:</strong> <span id="marketProvider">-</span></p>
-      <p><strong>Cached:</strong> <span id="marketCached">-</span></p>
-      <p><strong>Rows:</strong> <span id="marketCount">-</span></p>
-      <p><strong>Start:</strong> <span id="marketStart">-</span></p>
-      <p><strong>End:</strong> <span id="marketEnd">-</span></p>
-    </div>
-
-    <label for="candlesInput">Candles JSON</label>
-    <textarea id="candlesInput" rows="12" spellcheck="false"></textarea>
-    <p id="statusMessage" class="status">Ready.</p>
+    <label for="candlesInput">Parsed Candle Preview (from uploaded CSV)</label>
+    <textarea id="candlesInput" rows="12" spellcheck="false" readonly></textarea>
   </section>
 
   <section class="card results">
@@ -156,9 +123,6 @@
       <tr><td colspan="6">No trades yet.</td></tr>
       </tbody>
     </table>
-
-    <h3>Raw JSON</h3>
-    <pre id="rawResponse">Run a backtest to view JSON output.</pre>
   </section>
 </main>
 

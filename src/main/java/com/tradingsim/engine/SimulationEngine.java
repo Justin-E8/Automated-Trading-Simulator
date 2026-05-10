@@ -12,9 +12,17 @@ import java.math.RoundingMode;
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * Deterministic backtest engine that applies strategy signals to candles in order.
+ *
+ * <p>Tracks trades, equity curve, and summary metrics for a single simulation run.</p>
+ */
 @Component
 public class SimulationEngine {
 
+    /**
+     * Executes one full simulation run for the provided strategy and request parameters.
+     */
     public SimulationResult run(SimulationRequest request, TradingStrategy strategy) {
         if (request.candles() == null || request.candles().isEmpty()) {
             throw new IllegalArgumentException("Candles are required for a simulation run.");
