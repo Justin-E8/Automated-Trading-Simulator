@@ -166,3 +166,4 @@ Example row:
 ---
 
 See `docs/project-plan.md` for deeper scope and architecture details.
+For branch promotion steps, see `docs/merge-checklist.md`.
