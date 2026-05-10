@@ -378,7 +378,7 @@ public class SimulationService {
 
     private SimulationRunEntity loadRun(long runId) {
         return simulationRunRepository.findById(runId)
-                .orElseThrow(() -> new IllegalArgumentException("Simulation run not found for id=" + runId));
+                .orElseThrow(() -> new ResourceNotFoundException("Simulation run not found for id=" + runId));
     }
 
     private double roundMetric(double value) {
