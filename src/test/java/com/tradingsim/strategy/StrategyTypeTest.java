@@ -19,4 +19,11 @@ class StrategyTypeTest {
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("Unsupported strategy");
     }
+
+    @Test
+    void fromApiValue_rejectsBlankValue() {
+        assertThatThrownBy(() -> StrategyType.fromApiValue(" "))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("Strategy is required");
+    }
 }

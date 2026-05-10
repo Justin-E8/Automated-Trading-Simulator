@@ -12,6 +12,7 @@ import java.time.LocalDateTime;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 class SimulationEngineTest {
 
@@ -148,6 +149,82 @@ class SimulationEngineTest {
         assertThat(result.trades()).hasSize(2);
         assertThat(result.trades().get(1).side()).isEqualTo(OrderSide.SELL);
         assertThat(result.trades().get(1).timestamp()).isEqualTo(candle(1, "101.00").timestamp());
+    }
+
+    @Test
+    void run_takeProfitTriggersExitWithoutSellSignal() {
+        SimulationRequest request = new SimulationRequest(
+                "AAPL",
+                new BigDecimal("10000.00"),
+                5,
+                BigDecimal.ZERO,
+                BigDecimal.ZERO,
+                BigDecimal.ZERO,
+                new BigDecimal("2.0"),
+                0,
+                0,
+                List.of(
+                        candle(0, "100.00"),
+                        candle(1, "102.00"),
+                        candle(2, "103.00")
+                )
+        );
+
+        SimulationResult result = simulationEngine.run(
+                request,
+                scriptedStrategy(StrategySignal.BUY, StrategySignal.HOLD, StrategySignal.HOLD)
+        );
+
+        assertThat(result.trades()).hasSize(2);
+        assertThat(result.trades().get(1).side()).isEqualTo(OrderSide.SELL);
+        assertThat(result.trades().get(1).timestamp()).isEqualTo(candle(1, "102.00").timestamp());
+    }
+
+    @Test
+    void run_whenMaxPositionSizeIsZero_usesQuantityPerTrade() {
+        SimulationRequest request = new SimulationRequest(
+                "AAPL",
+                new BigDecimal("10000.00"),
+                7,
+                BigDecimal.ZERO,
+                BigDecimal.ZERO,
+                BigDecimal.ZERO,
+                BigDecimal.ZERO,
+                0,
+                0,
+                List.of(
+                        candle(0, "100.00"),
+                        candle(1, "101.00")
+                )
+        );
+
+        SimulationResult result = simulationEngine.run(
+                request,
+                scriptedStrategy(StrategySignal.BUY, StrategySignal.SELL)
+        );
+
+        assertThat(result.trades()).hasSize(2);
+        assertThat(result.trades().get(0).quantity()).isEqualTo(7);
+    }
+
+    @Test
+    void run_negativeSlippage_throwsException() {
+        SimulationRequest request = new SimulationRequest(
+                "AAPL",
+                new BigDecimal("10000.00"),
+                5,
+                BigDecimal.ZERO,
+                new BigDecimal("-0.1"),
+                BigDecimal.ZERO,
+                BigDecimal.ZERO,
+                0,
+                0,
+                List.of(candle(0, "100.00"), candle(1, "101.00"))
+        );
+
+        assertThatThrownBy(() -> simulationEngine.run(request, scriptedStrategy(StrategySignal.BUY)))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("slippageBps");
     }
 
     private TradingStrategy scriptedStrategy(StrategySignal... signals) {

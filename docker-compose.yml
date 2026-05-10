@@ -1,0 +1,35 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: trading-sim-postgres
+    environment:
+      POSTGRES_DB: trading_sim
+      POSTGRES_USER: trading_user
+      POSTGRES_PASSWORD: trading_pass
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U trading_user -d trading_sim"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    volumes:
+      - trading-sim-pgdata:/var/lib/postgresql/data
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: trading-sim-app
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/trading_sim
+      SPRING_DATASOURCE_USERNAME: trading_user
+      SPRING_DATASOURCE_PASSWORD: trading_pass
+      SPRING_DATASOURCE_DRIVER_CLASS_NAME: org.postgresql.Driver
+      SPRING_JPA_HIBERNATE_DDL_AUTO: update
+    ports:
+      - "8080:8080"
+
+volumes:
+  trading-sim-pgdata:

@@ -6,6 +6,9 @@ import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.util.List;
 
+/**
+ * Trend-following strategy based on short/long simple moving-average crossover.
+ */
 public class MovingAverageCrossStrategy implements TradingStrategy {
 
     private final int shortWindow;
