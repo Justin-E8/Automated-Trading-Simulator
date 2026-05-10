@@ -39,6 +39,10 @@ This project is portfolio-focused: it demonstrates simulation logic, API design,
 - `api` - REST controllers and DTO contracts
 - `infrastructure` - CSV parsing and JPA repositories
 
+Architecture diagram:
+
+- `docs/architecture-diagram.md`
+
 ## Prerequisites
 
 ### Required
@@ -272,3 +276,4 @@ This repository demonstrates:
 ## Additional docs
 
 - `docs/project-plan.md` - implementation roadmap and architecture evolution
+- `docs/architecture-diagram.md` - system component and data-flow diagram
