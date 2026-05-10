@@ -9,6 +9,20 @@ const meanReversionParams = document.getElementById("meanReversionParams");
 const sweepSmaParams = document.getElementById("sweepSmaParams");
 const sweepMeanReversionParams = document.getElementById("sweepMeanReversionParams");
 const sweepResultsBody = document.getElementById("sweepResultsBody");
+const runHistoryBody = document.getElementById("runHistoryBody");
+const loadRunsButton = document.getElementById("loadRunsButton");
+const historyPrevButton = document.getElementById("historyPrevButton");
+const historyNextButton = document.getElementById("historyNextButton");
+const historyPageLabel = document.getElementById("historyPageLabel");
+const leftRunIdInput = document.getElementById("leftRunIdInput");
+const rightRunIdInput = document.getElementById("rightRunIdInput");
+const compareRunsButton = document.getElementById("compareRunsButton");
+const comparisonSummary = document.getElementById("comparisonSummary");
+
+const historyState = {
+  page: 0,
+  totalPages: 0
+};
 
 function ensureElement(element, name) {
   if (!element) {
@@ -33,6 +47,13 @@ async function readResponseBody(response, fallbackMessage) {
   return parseJsonOrThrow(text, fallbackMessage);
 }
 
+function extractErrorMessage(body, fallbackMessage) {
+  if (!body || typeof body !== "object") {
+    return fallbackMessage;
+  }
+  return body.error || body.message || fallbackMessage;
+}
+
 function setStatus(message, type = "info") {
   const banner = ensureElement(statusMessage, "statusMessage");
   banner.textContent = message;
@@ -45,6 +66,27 @@ function formatNumber(value, digits = 2) {
     minimumFractionDigits: digits,
     maximumFractionDigits: digits
   });
+}
+
+function formatSignedNumber(value, digits = 4, includeDollar = false) {
+  const number = Number(value);
+  if (!Number.isFinite(number)) {
+    return includeDollar ? "$0.0000" : "0.0000";
+  }
+  const sign = number > 0 ? "+" : "";
+  const formatted = formatNumber(number, digits);
+  return includeDollar ? `${sign}$${formatted}` : `${sign}${formatted}`;
+}
+
+function toIsoDateTime(value) {
+  if (!value) {
+    return "-";
+  }
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.getTime())) {
+    return value;
+  }
+  return parsed.toLocaleString();
 }
 
 function baseParameters() {
@@ -131,6 +173,7 @@ function initializeCsvPreview() {
   // CSV-only workflow no longer preloads sample JSON.
   ensureElement(candlesInput, "candlesInput").value = "Upload a CSV and click Preview CSV.";
   syncStrategyControls();
+  renderComparisonPlaceholder();
 }
 
 function syncStrategyControls() {
@@ -159,7 +202,7 @@ async function previewCsv() {
     });
     const body = await readResponseBody(response, "Server returned invalid preview response.");
     if (!response.ok) {
-      throw new Error(body.error || "CSV preview failed.");
+      throw new Error(extractErrorMessage(body, "CSV preview failed."));
     }
 
     renderCsvPreview(body);
@@ -178,10 +221,11 @@ async function runCsvBacktest() {
     });
     const body = await readResponseBody(response, "Server returned invalid backtest response.");
     if (!response.ok) {
-      throw new Error(body.error || "CSV backtest failed.");
+      throw new Error(extractErrorMessage(body, "CSV backtest failed."));
     }
 
     renderResult(body);
+    await loadSavedRuns(0);
     const runLabel = body.runId !== undefined && body.runId !== null ? ` Run ID: ${body.runId}.` : "";
     setStatus(`CSV backtest complete.${runLabel}`, "success");
   } catch (error) {
@@ -198,7 +242,7 @@ async function runParameterSweep() {
     });
     const body = await readResponseBody(response, "Server returned invalid sweep response.");
     if (!response.ok) {
-      throw new Error(body.error || "Parameter sweep failed.");
+      throw new Error(extractErrorMessage(body, "Parameter sweep failed."));
     }
 
     renderSweepResults(body.results || []);
@@ -207,6 +251,87 @@ async function runParameterSweep() {
       `Sweep complete. Evaluated ${body.evaluatedCombinations} combinations; showing ${body.returnedCombinations}. Best score: ${bestScore}.`,
       "success"
     );
+  } catch (error) {
+    setStatus(error.message, "error");
+  }
+}
+
+async function loadSavedRuns(pageOverride = null) {
+  const pageSize = Number(document.getElementById("historyPageSize").value);
+  const symbol = document.getElementById("historySymbolFilter").value.trim();
+  const strategy = document.getElementById("historyStrategyFilter").value.trim();
+  const requestedPage = pageOverride === null ? historyState.page : pageOverride;
+  const page = Number.isFinite(requestedPage) ? Math.max(0, requestedPage) : 0;
+  if (!Number.isFinite(pageSize) || pageSize < 1 || pageSize > 100) {
+    setStatus("History page size must be between 1 and 100.", "error");
+    return;
+  }
+
+  setStatus("Loading saved runs...");
+  try {
+    const query = new URLSearchParams({
+      page: String(page),
+      size: String(pageSize),
+      symbol,
+      strategy
+    });
+    const response = await fetch(`/api/v1/simulations/runs?${query.toString()}`);
+    const body = await readResponseBody(response, "Server returned invalid run history response.");
+    if (!response.ok) {
+      throw new Error(extractErrorMessage(body, "Loading run history failed."));
+    }
+
+    historyState.page = body.page ?? 0;
+    historyState.totalPages = body.totalPages ?? 0;
+    renderRunHistory(body.runs || []);
+    updateHistoryPaginationState();
+    const count = Array.isArray(body.runs) ? body.runs.length : 0;
+    setStatus(`Loaded ${count} saved run(s).`, "success");
+  } catch (error) {
+    setStatus(error.message, "error");
+  }
+}
+
+async function loadRunById(runId) {
+  setStatus(`Loading run ${runId}...`);
+  try {
+    const response = await fetch(`/api/v1/simulations/runs/${runId}`);
+    const body = await readResponseBody(response, "Server returned invalid run response.");
+    if (!response.ok) {
+      throw new Error(extractErrorMessage(body, `Loading run ${runId} failed.`));
+    }
+    renderResult(body);
+    setStatus(`Loaded saved run ${runId}.`, "success");
+  } catch (error) {
+    setStatus(error.message, "error");
+  }
+}
+
+async function compareRuns() {
+  const leftRunId = Number(ensureElement(leftRunIdInput, "leftRunIdInput").value);
+  const rightRunId = Number(ensureElement(rightRunIdInput, "rightRunIdInput").value);
+  if (!Number.isFinite(leftRunId) || leftRunId <= 0 || !Number.isFinite(rightRunId) || rightRunId <= 0) {
+    setStatus("Enter valid positive IDs for both compare run fields.", "error");
+    return;
+  }
+  if (leftRunId === rightRunId) {
+    setStatus("Choose two different run IDs to compare.", "error");
+    return;
+  }
+
+  setStatus(`Comparing runs ${leftRunId} and ${rightRunId}...`);
+  try {
+    const query = new URLSearchParams({
+      leftRunId: String(leftRunId),
+      rightRunId: String(rightRunId)
+    });
+    const response = await fetch(`/api/v1/simulations/runs/compare?${query.toString()}`);
+    const body = await readResponseBody(response, "Server returned invalid comparison response.");
+    if (!response.ok) {
+      throw new Error(extractErrorMessage(body, "Run comparison failed."));
+    }
+    renderComparison(body);
+    setStatus("Run comparison loaded.", "success");
   } catch (error) {
     setStatus(error.message, "error");
   }
@@ -285,6 +410,72 @@ function renderSweepResults(results) {
   });
 }
 
+function renderRunHistory(runs) {
+  if (!Array.isArray(runs) || runs.length === 0) {
+    ensureElement(runHistoryBody, "runHistoryBody").innerHTML = "<tr><td colspan=\"7\">No saved runs found for this filter.</td></tr>";
+    return;
+  }
+  ensureElement(runHistoryBody, "runHistoryBody").innerHTML = "";
+  runs.forEach((run) => {
+    const row = document.createElement("tr");
+    row.innerHTML = `
+      <td>${run.runId}</td>
+      <td>${toIsoDateTime(run.createdAt)}</td>
+      <td>${run.symbol}</td>
+      <td>${run.strategyName}</td>
+      <td>${formatNumber(run.totalReturnPct, 4)}</td>
+      <td>$${formatNumber(run.endingEquity, 2)}</td>
+      <td>
+        <div class="button-row">
+          <button class="secondary-button history-load-btn" type="button" data-run-id="${run.runId}">Load</button>
+          <button class="secondary-button history-left-btn" type="button" data-run-id="${run.runId}">Set Left</button>
+          <button class="secondary-button history-right-btn" type="button" data-run-id="${run.runId}">Set Right</button>
+        </div>
+      </td>
+    `;
+    ensureElement(runHistoryBody, "runHistoryBody").appendChild(row);
+  });
+}
+
+function renderComparisonPlaceholder() {
+  ensureElement(comparisonSummary, "comparisonSummary").textContent = "Choose two run IDs and click Compare Runs.";
+}
+
+function renderComparison(comparison) {
+  if (!comparison || !comparison.leftRun || !comparison.rightRun || !comparison.delta) {
+    renderComparisonPlaceholder();
+    return;
+  }
+  const delta = comparison.delta;
+  ensureElement(comparisonSummary, "comparisonSummary").innerHTML = `
+    <strong>Left:</strong> #${comparison.leftRun.runId} (${comparison.leftRun.strategyName}) |
+    <strong>Right:</strong> #${comparison.rightRun.runId} (${comparison.rightRun.strategyName})
+    <ul>
+      <li>End Equity Delta: ${formatSignedNumber(delta.endingEquityDelta, 4, true)}</li>
+      <li>Total Return % Delta: ${formatSignedNumber(delta.totalReturnPctDelta)}</li>
+      <li>Max Drawdown % Delta: ${formatSignedNumber(delta.maxDrawdownPctDelta)}</li>
+      <li>Sharpe Delta: ${formatSignedNumber(delta.sharpeRatioDelta)}</li>
+      <li>Win Rate % Delta: ${formatSignedNumber(delta.winRatePctDelta)}</li>
+      <li>Profit Factor Delta: ${formatSignedNumber(delta.profitFactorDelta)}</li>
+      <li>Expectancy Delta: ${formatSignedNumber(delta.expectancyDelta)}</li>
+      <li>Average Win Delta: ${formatSignedNumber(delta.averageWinDelta)}</li>
+      <li>Average Loss Delta: ${formatSignedNumber(delta.averageLossDelta)}</li>
+      <li>Exposure Time % Delta: ${formatSignedNumber(delta.exposureTimePctDelta)}</li>
+      <li>Trade Count Delta: ${formatSignedNumber(delta.tradeCountDelta, 0)}</li>
+    </ul>
+  `;
+}
+
+function updateHistoryPaginationState() {
+  const pageNumber = (historyState.page || 0) + 1;
+  const totalPages = historyState.totalPages || 0;
+  ensureElement(historyPageLabel, "historyPageLabel").textContent = totalPages === 0
+    ? "Page 1 / 1"
+    : `Page ${pageNumber} / ${totalPages}`;
+  ensureElement(historyPrevButton, "historyPrevButton").disabled = historyState.page <= 0;
+  ensureElement(historyNextButton, "historyNextButton").disabled = totalPages === 0 || historyState.page >= totalPages - 1;
+}
+
 function configurationLabel(parameters) {
   if (parameters.shortWindow !== null && parameters.longWindow !== null) {
     return `SMA(${parameters.shortWindow}, ${parameters.longWindow})`;
@@ -356,6 +547,41 @@ function renderEquityCurve(points) {
 document.getElementById("previewCsvButton").addEventListener("click", previewCsv);
 document.getElementById("runCsvBacktestButton").addEventListener("click", runCsvBacktest);
 document.getElementById("runSweepButton").addEventListener("click", runParameterSweep);
+ensureElement(loadRunsButton, "loadRunsButton").addEventListener("click", () => loadSavedRuns(0));
+ensureElement(historyPrevButton, "historyPrevButton").addEventListener("click", () => {
+  if (historyState.page > 0) {
+    loadSavedRuns(historyState.page - 1);
+  }
+});
+ensureElement(historyNextButton, "historyNextButton").addEventListener("click", () => {
+  if (historyState.page < historyState.totalPages - 1) {
+    loadSavedRuns(historyState.page + 1);
+  }
+});
+ensureElement(compareRunsButton, "compareRunsButton").addEventListener("click", compareRuns);
+ensureElement(runHistoryBody, "runHistoryBody").addEventListener("click", (event) => {
+  const button = event.target.closest("button");
+  if (!button) {
+    return;
+  }
+  const runId = Number(button.dataset.runId);
+  if (!Number.isFinite(runId) || runId <= 0) {
+    return;
+  }
+  if (button.classList.contains("history-load-btn")) {
+    loadRunById(runId);
+    return;
+  }
+  if (button.classList.contains("history-left-btn")) {
+    ensureElement(leftRunIdInput, "leftRunIdInput").value = String(runId);
+    setStatus(`Left compare run set to ${runId}.`, "info");
+    return;
+  }
+  if (button.classList.contains("history-right-btn")) {
+    ensureElement(rightRunIdInput, "rightRunIdInput").value = String(runId);
+    setStatus(`Right compare run set to ${runId}.`, "info");
+  }
+});
 ensureElement(strategyInput, "strategy").addEventListener("change", () => {
   syncStrategyControls();
   setStatus(`Strategy selected: ${strategyInput.value}`, "info");
@@ -370,3 +596,5 @@ ensureElement(csvFileInput, "csvFileInput").addEventListener("change", () => {
 });
 
 initializeCsvPreview();
+updateHistoryPaginationState();
+loadSavedRuns(0);

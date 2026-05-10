@@ -153,6 +153,42 @@ button:hover {
   font-size: 0.92rem;
 }
 
+.history-controls {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 0.45rem;
+  align-items: end;
+  margin-bottom: 0.8rem;
+}
+
+.history-pagination {
+  display: flex;
+  gap: 0.55rem;
+  align-items: center;
+  margin-bottom: 0.8rem;
+}
+
+.comparison-box {
+  border: 1px solid #e2e8f0;
+  background: #f8fafc;
+  border-radius: 8px;
+  padding: 0.7rem;
+  font-size: 0.92rem;
+}
+
+.comparison-box ul {
+  margin: 0.4rem 0 0;
+  padding-left: 1.1rem;
+}
+
+.secondary-button {
+  background: #334155;
+}
+
+.secondary-button:hover {
+  background: #1e293b;
+}
+
 .metrics-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));

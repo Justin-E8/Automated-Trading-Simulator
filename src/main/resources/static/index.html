@@ -250,6 +250,58 @@
       <tr><td colspan="6">No sweep results yet.</td></tr>
       </tbody>
     </table>
+
+    <h3>Saved Runs</h3>
+    <p class="help-text">Load previous runs, set compare targets, and review metric deltas.</p>
+
+    <div class="history-controls">
+      <label for="historySymbolFilter">Symbol Filter</label>
+      <input id="historySymbolFilter" type="text" placeholder="e.g. AAPL">
+
+      <label for="historyStrategyFilter">Strategy Filter</label>
+      <input id="historyStrategyFilter" type="text" placeholder="e.g. MeanReversion">
+
+      <label for="historyPageSize">Page Size</label>
+      <input id="historyPageSize" type="number" min="1" max="100" value="10">
+
+      <button id="loadRunsButton" type="button">Load Saved Runs</button>
+    </div>
+
+    <div class="history-pagination">
+      <button id="historyPrevButton" type="button">Previous</button>
+      <span id="historyPageLabel">Page 1</span>
+      <button id="historyNextButton" type="button">Next</button>
+    </div>
+
+    <table>
+      <thead>
+      <tr>
+        <th>Run ID</th>
+        <th>Created</th>
+        <th>Symbol</th>
+        <th>Strategy</th>
+        <th>Return %</th>
+        <th>End Equity</th>
+        <th>Actions</th>
+      </tr>
+      </thead>
+      <tbody id="runHistoryBody">
+      <tr><td colspan="7">No saved runs loaded yet.</td></tr>
+      </tbody>
+    </table>
+
+    <h3>Run Comparison</h3>
+    <div class="history-controls">
+      <label for="leftRunIdInput">Left Run ID</label>
+      <input id="leftRunIdInput" type="number" min="1">
+      <label for="rightRunIdInput">Right Run ID</label>
+      <input id="rightRunIdInput" type="number" min="1">
+      <button id="compareRunsButton" type="button">Compare Runs</button>
+    </div>
+
+    <div id="comparisonSummary" class="comparison-box">
+      Choose two run IDs and click Compare Runs.
+    </div>
   </section>
 </main>
 

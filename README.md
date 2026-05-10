@@ -115,6 +115,7 @@ From there you can:
 - choose strategy (SMA Cross or Mean Reversion)
 - upload a CSV, preview candle stats, and run a CSV-based backtest
 - inspect metrics, trades, and equity curve output
+- load saved runs, page/filter run history, and compare two runs in the UI
 
 ### CSV backtest parameters
 
@@ -179,6 +180,18 @@ Compare two runs (delta fields are `right - left`):
 curl "http://localhost:8080/api/v1/simulations/runs/compare?leftRunId=1&rightRunId=2"
 ```
 
+### Saved runs + comparison directly in UI
+
+Each CSV backtest is automatically persisted and assigned a `runId`.
+
+In the web UI:
+
+1. Scroll to **Saved Runs** in the results pane.
+2. Click **Load Saved Runs** (optionally apply symbol/strategy filters first).
+3. Use **Load** to render any prior run in the metrics/trades/equity view.
+4. Use **Set Left** and **Set Right** on two runs, then click **Compare Runs**.
+5. Review metric deltas in the **Run Comparison** box.
+
 ### Recommended real-world stock workflow (no API key)
 
 1. Download historical CSV from Yahoo Finance (e.g., AAPL historical data page).
@@ -220,6 +233,30 @@ Install required Python packages once:
 pip install yfinance pandas
 ```
 
+## Run with Docker Compose (app + PostgreSQL)
+
+Build and run the full stack:
+
+```bash
+docker compose up --build
+```
+
+Then open:
+
+- `http://localhost:8080`
+
+Stop services:
+
+```bash
+docker compose down
+```
+
+Remove database volume too:
+
+```bash
+docker compose down -v
+```
+
 ### CSV format for upload
 
 Required header columns:
@@ -249,10 +286,10 @@ Example row:
 
 ## Planned next steps
 
-1. Continue Phase 7 hardening (additional edge-case + failure-path tests)
+1. Add CI workflow for automated tests on each PR
 2. Expand performance coverage for large sweep workloads
-3. Improve saved-run and comparison UX in the lightweight UI
-4. Add durable DB profile wiring for persistent multi-session history
+3. Add lightweight export options for sweep/run comparison data
+4. Optional product expansion: authentication + multi-user persistent history
 
 ---
 
