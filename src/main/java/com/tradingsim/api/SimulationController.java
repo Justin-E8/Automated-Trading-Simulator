@@ -5,7 +5,10 @@ import com.tradingsim.api.dto.CandleDto;
 import com.tradingsim.api.dto.CsvPreviewResponse;
 import com.tradingsim.application.SimulationService;
 import com.tradingsim.infrastructure.csv.CsvPreviewSummary;
-import jakarta.validation.Valid;
+import com.tradingsim.strategy.MeanReversionConfig;
+import com.tradingsim.strategy.SmaCrossConfig;
+import com.tradingsim.strategy.StrategyConfig;
+import com.tradingsim.strategy.StrategyType;
 import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
@@ -74,18 +77,35 @@ public class SimulationController {
             @RequestParam(name = "meanReversionThresholdPct", defaultValue = "2.0")
             @DecimalMin(value = "0.0", inclusive = false) BigDecimal meanReversionThresholdPct
     ) {
-        return simulationService.runBacktestFromCsv(
-                file,
-                symbol,
+        StrategyConfig strategyConfig = toStrategyConfig(
                 strategy,
-                initialCash,
-                quantityPerTrade,
-                feeBps,
                 shortWindow,
                 longWindow,
                 meanReversionWindow,
                 meanReversionThresholdPct
         );
+        return simulationService.runBacktestFromCsv(
+                file,
+                symbol,
+                strategyConfig,
+                initialCash,
+                quantityPerTrade,
+                feeBps
+        );
+    }
+
+    private StrategyConfig toStrategyConfig(
+            String strategy,
+            int shortWindow,
+            int longWindow,
+            int meanReversionWindow,
+            BigDecimal meanReversionThresholdPct
+    ) {
+        StrategyType strategyType = StrategyType.fromApiValue(strategy);
+        return switch (strategyType) {
+            case SMA_CROSS -> new SmaCrossConfig(shortWindow, longWindow);
+            case MEAN_REVERSION -> new MeanReversionConfig(meanReversionWindow, meanReversionThresholdPct);
+        };
     }
 
 }

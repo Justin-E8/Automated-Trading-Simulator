@@ -8,9 +8,8 @@ import com.tradingsim.engine.SimulationRequest;
 import com.tradingsim.engine.SimulationResult;
 import com.tradingsim.infrastructure.csv.CsvCandleService;
 import com.tradingsim.infrastructure.csv.CsvPreviewSummary;
-import com.tradingsim.strategy.MeanReversionStrategy;
-import com.tradingsim.strategy.MovingAverageCrossStrategy;
-import com.tradingsim.strategy.StrategyType;
+import com.tradingsim.strategy.StrategyConfig;
+import com.tradingsim.strategy.StrategyFactory;
 import com.tradingsim.strategy.TradingStrategy;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
@@ -29,10 +28,16 @@ public class SimulationService {
 
     private final SimulationEngine simulationEngine;
     private final CsvCandleService csvCandleService;
+    private final StrategyFactory strategyFactory;
 
-    public SimulationService(SimulationEngine simulationEngine, CsvCandleService csvCandleService) {
+    public SimulationService(
+            SimulationEngine simulationEngine,
+            CsvCandleService csvCandleService,
+            StrategyFactory strategyFactory
+    ) {
         this.simulationEngine = simulationEngine;
         this.csvCandleService = csvCandleService;
+        this.strategyFactory = strategyFactory;
     }
 
     /**
@@ -41,26 +46,18 @@ public class SimulationService {
     public BacktestRunResponse runBacktestFromCsv(
             MultipartFile file,
             String symbol,
-            String strategy,
+            StrategyConfig strategyConfig,
             BigDecimal initialCash,
             long quantityPerTrade,
-            BigDecimal feeBps,
-            int shortWindow,
-            int longWindow,
-            int meanReversionWindow,
-            BigDecimal meanReversionThresholdPct
+            BigDecimal feeBps
     ) {
         List<Candle> candles = csvCandleService.parseCandles(file);
         return runBacktestWithCandles(
                 symbol,
-                strategy,
+                strategyConfig,
                 initialCash,
                 quantityPerTrade,
                 feeBps,
-                shortWindow,
-                longWindow,
-                meanReversionWindow,
-                meanReversionThresholdPct,
                 candles
         );
     }
@@ -74,23 +71,13 @@ public class SimulationService {
 
     private BacktestRunResponse runBacktestWithCandles(
             String symbol,
-            String strategy,
+            StrategyConfig strategyConfig,
             BigDecimal initialCash,
             long quantityPerTrade,
             BigDecimal feeBps,
-            int shortWindow,
-            int longWindow,
-            int meanReversionWindow,
-            BigDecimal meanReversionThresholdPct,
             List<Candle> candles
     ) {
-        TradingStrategy selectedStrategy = buildStrategy(
-                strategy,
-                shortWindow,
-                longWindow,
-                meanReversionWindow,
-                meanReversionThresholdPct
-        );
+        TradingStrategy selectedStrategy = strategyFactory.create(strategyConfig);
 
         SimulationRequest simulationRequest = new SimulationRequest(
                 symbol,
@@ -126,27 +113,6 @@ public class SimulationService {
                 ).toList(),
                 result.equityCurve().stream().map(this::toEquityPointDto).toList()
         );
-    }
-
-    private TradingStrategy buildStrategy(
-            String strategyName,
-            int shortWindow,
-            int longWindow,
-            int meanReversionWindow,
-            BigDecimal meanReversionThresholdPct
-    ) {
-        StrategyType strategyType = StrategyType.fromApiValue(strategyName);
-        return switch (strategyType) {
-            case SMA_CROSS -> buildSmaStrategy(shortWindow, longWindow);
-            case MEAN_REVERSION -> new MeanReversionStrategy(meanReversionWindow, meanReversionThresholdPct);
-        };
-    }
-
-    private TradingStrategy buildSmaStrategy(int shortWindow, int longWindow) {
-        if (shortWindow >= longWindow) {
-            throw new IllegalArgumentException("Expected shortWindow < longWindow.");
-        }
-        return new MovingAverageCrossStrategy(shortWindow, longWindow);
     }
 
     private BacktestRunResponse.EquityPointDto toEquityPointDto(EquityPoint point) {
