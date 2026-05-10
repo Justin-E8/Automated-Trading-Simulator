@@ -9,6 +9,9 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 
 import java.util.Map;
 
+/**
+ * Centralized API error translation used by Spring MVC exception handling.
+ */
 @RestControllerAdvice
 public class ApiExceptionHandler {
 

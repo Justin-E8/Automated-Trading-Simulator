@@ -6,7 +6,13 @@ import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
 
+/**
+ * Full backtest payload including metadata, metrics, trades, and equity curve.
+ */
 public record BacktestRunResponse(
+        Long runId,
+        LocalDateTime createdAt,
+        String symbol,
         String strategyName,
         BigDecimal startingCash,
         BigDecimal endingEquity,
@@ -19,6 +25,11 @@ public record BacktestRunResponse(
             double maxDrawdownPct,
             double sharpeRatio,
             double winRatePct,
+            double profitFactor,
+            double expectancy,
+            double averageWin,
+            double averageLoss,
+            double exposureTimePct,
             long tradeCount
     ) {
     }

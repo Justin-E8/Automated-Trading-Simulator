@@ -79,6 +79,14 @@ body {
   gap: 0.45rem;
 }
 
+.strategy-group {
+  margin-top: 0.5rem;
+}
+
+.hidden {
+  display: none;
+}
+
 label {
   font-weight: 600;
   margin-top: 0.3rem;

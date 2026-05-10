@@ -3,6 +3,12 @@ const candlesInput = document.getElementById("candlesInput");
 const tradesTableBody = document.getElementById("tradesTableBody");
 const equityCanvas = document.getElementById("equityCanvas");
 const csvFileInput = document.getElementById("csvFileInput");
+const strategyInput = document.getElementById("strategy");
+const smaParams = document.getElementById("smaParams");
+const meanReversionParams = document.getElementById("meanReversionParams");
+const sweepSmaParams = document.getElementById("sweepSmaParams");
+const sweepMeanReversionParams = document.getElementById("sweepMeanReversionParams");
+const sweepResultsBody = document.getElementById("sweepResultsBody");
 
 function ensureElement(element, name) {
   if (!element) {
@@ -44,11 +50,19 @@ function formatNumber(value, digits = 2) {
 function baseParameters() {
   return {
     symbol: document.getElementById("symbol").value.trim(),
+    strategy: ensureElement(strategyInput, "strategy").value,
     initialCash: Number(document.getElementById("initialCash").value),
     quantityPerTrade: Number(document.getElementById("quantityPerTrade").value),
     feeBps: Number(document.getElementById("feeBps").value),
+    slippageBps: Number(document.getElementById("slippageBps").value),
+    maxPositionSize: Number(document.getElementById("maxPositionSize").value),
+    maxHoldingCandles: Number(document.getElementById("maxHoldingCandles").value),
+    stopLossPct: Number(document.getElementById("stopLossPct").value),
+    takeProfitPct: Number(document.getElementById("takeProfitPct").value),
     shortWindow: Number(document.getElementById("shortWindow").value),
-    longWindow: Number(document.getElementById("longWindow").value)
+    longWindow: Number(document.getElementById("longWindow").value),
+    meanReversionWindow: Number(document.getElementById("meanReversionWindow").value),
+    meanReversionThresholdPct: Number(document.getElementById("meanReversionThresholdPct").value)
   };
 }
 
@@ -69,14 +83,69 @@ function buildCsvFormData() {
   formData.append("initialCash", String(params.initialCash));
   formData.append("quantityPerTrade", String(params.quantityPerTrade));
   formData.append("feeBps", String(params.feeBps));
+  formData.append("slippageBps", String(params.slippageBps));
+  formData.append("maxPositionSize", String(params.maxPositionSize));
+  formData.append("maxHoldingCandles", String(params.maxHoldingCandles));
+  formData.append("stopLossPct", String(params.stopLossPct));
+  formData.append("takeProfitPct", String(params.takeProfitPct));
   formData.append("shortWindow", String(params.shortWindow));
   formData.append("longWindow", String(params.longWindow));
+  formData.append("strategy", params.strategy);
+  formData.append("meanReversionWindow", String(params.meanReversionWindow));
+  formData.append("meanReversionThresholdPct", String(params.meanReversionThresholdPct));
+  return formData;
+}
+
+function buildSweepFormData() {
+  const params = baseParameters();
+  const formData = new FormData();
+  formData.append("file", selectedCsvFile());
+  formData.append("symbol", params.symbol);
+  formData.append("strategy", params.strategy);
+  formData.append("initialCash", String(params.initialCash));
+  formData.append("quantityPerTrade", String(params.quantityPerTrade));
+  formData.append("feeBps", String(params.feeBps));
+  formData.append("slippageBps", String(params.slippageBps));
+  formData.append("stopLossPct", String(params.stopLossPct));
+  formData.append("takeProfitPct", String(params.takeProfitPct));
+  formData.append("maxPositionSize", String(params.maxPositionSize));
+  formData.append("maxHoldingCandles", String(params.maxHoldingCandles));
+  formData.append("optimizeFor", String(document.getElementById("sweepOptimizeFor").value));
+  formData.append("maxResults", String(document.getElementById("sweepMaxResults").value));
+  formData.append("shortWindowStart", String(document.getElementById("sweepShortStart").value));
+  formData.append("shortWindowEnd", String(document.getElementById("sweepShortEnd").value));
+  formData.append("shortWindowStep", String(document.getElementById("sweepShortStep").value));
+  formData.append("longWindowStart", String(document.getElementById("sweepLongStart").value));
+  formData.append("longWindowEnd", String(document.getElementById("sweepLongEnd").value));
+  formData.append("longWindowStep", String(document.getElementById("sweepLongStep").value));
+  formData.append("meanReversionWindowStart", String(document.getElementById("sweepMeanWindowStart").value));
+  formData.append("meanReversionWindowEnd", String(document.getElementById("sweepMeanWindowEnd").value));
+  formData.append("meanReversionWindowStep", String(document.getElementById("sweepMeanWindowStep").value));
+  formData.append("meanReversionThresholdStartPct", String(document.getElementById("sweepMeanThresholdStart").value));
+  formData.append("meanReversionThresholdEndPct", String(document.getElementById("sweepMeanThresholdEnd").value));
+  formData.append("meanReversionThresholdStepPct", String(document.getElementById("sweepMeanThresholdStep").value));
   return formData;
 }
 
 function initializeCsvPreview() {
   // CSV-only workflow no longer preloads sample JSON.
   ensureElement(candlesInput, "candlesInput").value = "Upload a CSV and click Preview CSV.";
+  syncStrategyControls();
+}
+
+function syncStrategyControls() {
+  const strategy = ensureElement(strategyInput, "strategy").value;
+  if (strategy === "mean-reversion") {
+    ensureElement(smaParams, "smaParams").classList.add("hidden");
+    ensureElement(meanReversionParams, "meanReversionParams").classList.remove("hidden");
+    ensureElement(sweepSmaParams, "sweepSmaParams").classList.add("hidden");
+    ensureElement(sweepMeanReversionParams, "sweepMeanReversionParams").classList.remove("hidden");
+    return;
+  }
+  ensureElement(smaParams, "smaParams").classList.remove("hidden");
+  ensureElement(meanReversionParams, "meanReversionParams").classList.add("hidden");
+  ensureElement(sweepSmaParams, "sweepSmaParams").classList.remove("hidden");
+  ensureElement(sweepMeanReversionParams, "sweepMeanReversionParams").classList.add("hidden");
 }
 
 async function previewCsv() {
@@ -113,13 +182,38 @@ async function runCsvBacktest() {
     }
 
     renderResult(body);
-    setStatus("CSV backtest complete.", "success");
+    const runLabel = body.runId !== undefined && body.runId !== null ? ` Run ID: ${body.runId}.` : "";
+    setStatus(`CSV backtest complete.${runLabel}`, "success");
+  } catch (error) {
+    setStatus(error.message, "error");
+  }
+}
+
+async function runParameterSweep() {
+  setStatus("Running parameter sweep...");
+  try {
+    const response = await fetch("/api/v1/simulations/csv/sweep", {
+      method: "POST",
+      body: buildSweepFormData()
+    });
+    const body = await readResponseBody(response, "Server returned invalid sweep response.");
+    if (!response.ok) {
+      throw new Error(body.error || "Parameter sweep failed.");
+    }
+
+    renderSweepResults(body.results || []);
+    const bestScore = body.bestResult ? formatNumber(body.bestResult.objectiveScore, 4) : "n/a";
+    setStatus(
+      `Sweep complete. Evaluated ${body.evaluatedCombinations} combinations; showing ${body.returnedCombinations}. Best score: ${bestScore}.`,
+      "success"
+    );
   } catch (error) {
     setStatus(error.message, "error");
   }
 }
 
 function renderResult(result) {
+  document.getElementById("metricRunId").textContent = result.runId ?? "-";
   document.getElementById("metricStrategy").textContent = result.strategyName;
   document.getElementById("metricStartCash").textContent = `$${formatNumber(result.startingCash)}`;
   document.getElementById("metricEndEquity").textContent = `$${formatNumber(result.endingEquity)}`;
@@ -127,6 +221,11 @@ function renderResult(result) {
   document.getElementById("metricMaxDrawdown").textContent = formatNumber(result.metrics.maxDrawdownPct, 4);
   document.getElementById("metricSharpe").textContent = formatNumber(result.metrics.sharpeRatio, 4);
   document.getElementById("metricWinRate").textContent = formatNumber(result.metrics.winRatePct, 4);
+  document.getElementById("metricProfitFactor").textContent = formatNumber(result.metrics.profitFactor, 4);
+  document.getElementById("metricExpectancy").textContent = formatNumber(result.metrics.expectancy, 4);
+  document.getElementById("metricAverageWin").textContent = formatNumber(result.metrics.averageWin, 4);
+  document.getElementById("metricAverageLoss").textContent = formatNumber(result.metrics.averageLoss, 4);
+  document.getElementById("metricExposureTime").textContent = formatNumber(result.metrics.exposureTimePct, 4);
   document.getElementById("metricTradeCount").textContent = String(result.metrics.tradeCount);
 
   renderTrades(result.trades);
@@ -164,6 +263,36 @@ function renderTrades(trades) {
     `;
     ensureElement(tradesTableBody, "tradesTableBody").appendChild(row);
   });
+}
+
+function renderSweepResults(results) {
+  if (!Array.isArray(results) || results.length === 0) {
+    ensureElement(sweepResultsBody, "sweepResultsBody").innerHTML = "<tr><td colspan=\"6\">No sweep results returned.</td></tr>";
+    return;
+  }
+  ensureElement(sweepResultsBody, "sweepResultsBody").innerHTML = "";
+  results.forEach((result) => {
+    const row = document.createElement("tr");
+    row.innerHTML = `
+      <td>${result.rank}</td>
+      <td>${configurationLabel(result.parameters)}</td>
+      <td>${formatNumber(result.objectiveScore, 4)}</td>
+      <td>${formatNumber(result.metrics.totalReturnPct, 4)}</td>
+      <td>${formatNumber(result.metrics.sharpeRatio, 4)}</td>
+      <td>${result.metrics.tradeCount}</td>
+    `;
+    ensureElement(sweepResultsBody, "sweepResultsBody").appendChild(row);
+  });
+}
+
+function configurationLabel(parameters) {
+  if (parameters.shortWindow !== null && parameters.longWindow !== null) {
+    return `SMA(${parameters.shortWindow}, ${parameters.longWindow})`;
+  }
+  if (parameters.meanReversionWindow !== null && parameters.meanReversionThresholdPct !== null) {
+    return `MeanRev(${parameters.meanReversionWindow}, ${parameters.meanReversionThresholdPct}%)`;
+  }
+  return "Unknown";
 }
 
 function renderEquityCurve(points) {
@@ -226,6 +355,11 @@ function renderEquityCurve(points) {
 
 document.getElementById("previewCsvButton").addEventListener("click", previewCsv);
 document.getElementById("runCsvBacktestButton").addEventListener("click", runCsvBacktest);
+document.getElementById("runSweepButton").addEventListener("click", runParameterSweep);
+ensureElement(strategyInput, "strategy").addEventListener("change", () => {
+  syncStrategyControls();
+  setStatus(`Strategy selected: ${strategyInput.value}`, "info");
+});
 ensureElement(csvFileInput, "csvFileInput").addEventListener("change", () => {
   try {
     const file = selectedCsvFile();

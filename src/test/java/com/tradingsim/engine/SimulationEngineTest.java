@@ -1,7 +1,10 @@
 package com.tradingsim.engine;
 
 import com.tradingsim.domain.Candle;
+import com.tradingsim.domain.OrderSide;
 import com.tradingsim.strategy.MovingAverageCrossStrategy;
+import com.tradingsim.strategy.StrategySignal;
+import com.tradingsim.strategy.TradingStrategy;
 import org.junit.jupiter.api.Test;
 
 import java.math.BigDecimal;
@@ -21,6 +24,11 @@ class SimulationEngineTest {
                 new BigDecimal("10000.00"),
                 10,
                 new BigDecimal("5.0"),
+                BigDecimal.ZERO,
+                BigDecimal.ZERO,
+                BigDecimal.ZERO,
+                0,
+                0,
                 candles()
         );
 
@@ -29,6 +37,8 @@ class SimulationEngineTest {
         assertThat(result.equityCurve()).hasSize(candles().size());
         assertThat(result.metrics().tradeCount()).isGreaterThanOrEqualTo(0);
         assertThat(result.endingEquity()).isNotNull();
+        assertThat(result.metrics().profitFactor()).isGreaterThanOrEqualTo(0.0);
+        assertThat(result.metrics().exposureTimePct()).isBetween(0.0, 100.0);
     }
 
     @Test
@@ -38,6 +48,11 @@ class SimulationEngineTest {
                 new BigDecimal("10000.00"),
                 10,
                 new BigDecimal("5.0"),
+                BigDecimal.ZERO,
+                BigDecimal.ZERO,
+                BigDecimal.ZERO,
+                0,
+                0,
                 List.of()
         );
 
@@ -45,6 +60,112 @@ class SimulationEngineTest {
                 IllegalArgumentException.class,
                 () -> simulationEngine.run(request, new MovingAverageCrossStrategy(3, 5))
         );
+    }
+
+    @Test
+    void run_appliesMaxPositionSizeAndSlippage() {
+        SimulationRequest request = new SimulationRequest(
+                "AAPL",
+                new BigDecimal("10000.00"),
+                10,
+                BigDecimal.ZERO,
+                new BigDecimal("100.0"),
+                BigDecimal.ZERO,
+                BigDecimal.ZERO,
+                4,
+                0,
+                List.of(
+                        candle(0, "100.00"),
+                        candle(1, "101.00")
+                )
+        );
+
+        SimulationResult result = simulationEngine.run(
+                request,
+                scriptedStrategy(StrategySignal.BUY, StrategySignal.SELL)
+        );
+
+        assertThat(result.trades()).hasSize(2);
+        assertThat(result.trades().get(0).quantity()).isEqualTo(4);
+        assertThat(result.trades().get(0).price()).isEqualByComparingTo("101.0000");
+        assertThat(result.trades().get(1).price()).isEqualByComparingTo("99.9900");
+    }
+
+    @Test
+    void run_stopLossTriggersExitWithoutSellSignal() {
+        SimulationRequest request = new SimulationRequest(
+                "AAPL",
+                new BigDecimal("10000.00"),
+                5,
+                BigDecimal.ZERO,
+                BigDecimal.ZERO,
+                new BigDecimal("3.0"),
+                BigDecimal.ZERO,
+                0,
+                0,
+                List.of(
+                        candle(0, "100.00"),
+                        candle(1, "95.00"),
+                        candle(2, "94.00")
+                )
+        );
+
+        SimulationResult result = simulationEngine.run(
+                request,
+                scriptedStrategy(StrategySignal.BUY, StrategySignal.HOLD, StrategySignal.HOLD)
+        );
+
+        assertThat(result.trades()).hasSize(2);
+        assertThat(result.trades().get(0).side()).isEqualTo(OrderSide.BUY);
+        assertThat(result.trades().get(1).side()).isEqualTo(OrderSide.SELL);
+        assertThat(result.trades().get(1).timestamp()).isEqualTo(candle(1, "95.00").timestamp());
+    }
+
+    @Test
+    void run_maxHoldingCandlesTriggersExit() {
+        SimulationRequest request = new SimulationRequest(
+                "AAPL",
+                new BigDecimal("10000.00"),
+                5,
+                BigDecimal.ZERO,
+                BigDecimal.ZERO,
+                BigDecimal.ZERO,
+                BigDecimal.ZERO,
+                0,
+                1,
+                List.of(
+                        candle(0, "100.00"),
+                        candle(1, "101.00"),
+                        candle(2, "102.00")
+                )
+        );
+
+        SimulationResult result = simulationEngine.run(
+                request,
+                scriptedStrategy(StrategySignal.BUY, StrategySignal.HOLD, StrategySignal.HOLD)
+        );
+
+        assertThat(result.trades()).hasSize(2);
+        assertThat(result.trades().get(1).side()).isEqualTo(OrderSide.SELL);
+        assertThat(result.trades().get(1).timestamp()).isEqualTo(candle(1, "101.00").timestamp());
+    }
+
+    private TradingStrategy scriptedStrategy(StrategySignal... signals) {
+        return new TradingStrategy() {
+            @Override
+            public String name() {
+                return "Scripted";
+            }
+
+            @Override
+            public StrategySignal generateSignal(List<Candle> candles, long openQuantity) {
+                int index = candles.size() - 1;
+                if (index >= 0 && index < signals.length) {
+                    return signals[index];
+                }
+                return StrategySignal.HOLD;
+            }
+        };
     }
 
     private List<Candle> candles() {

@@ -30,15 +30,36 @@ public class SimulationEngine {
         if (request.quantityPerTrade() <= 0) {
             throw new IllegalArgumentException("Quantity per trade must be positive.");
         }
+        if (request.maxPositionSize() < 0) {
+            throw new IllegalArgumentException("maxPositionSize must be >= 0.");
+        }
+        if (request.maxHoldingCandles() < 0) {
+            throw new IllegalArgumentException("maxHoldingCandles must be >= 0.");
+        }
+        if (request.slippageBps().compareTo(BigDecimal.ZERO) < 0) {
+            throw new IllegalArgumentException("slippageBps must be >= 0.");
+        }
+        if (request.stopLossPct().compareTo(BigDecimal.ZERO) < 0) {
+            throw new IllegalArgumentException("stopLossPct must be >= 0.");
+        }
+        if (request.takeProfitPct().compareTo(BigDecimal.ZERO) < 0) {
+            throw new IllegalArgumentException("takeProfitPct must be >= 0.");
+        }
+
+        long effectiveMaxPositionSize = request.maxPositionSize() > 0
+                ? request.maxPositionSize()
+                : request.quantityPerTrade();
 
         BigDecimal cash = request.initialCash();
         long openQuantity = 0L;
         BigDecimal entryPrice = BigDecimal.ZERO;
         BigDecimal entryFee = BigDecimal.ZERO;
+        int barsHeld = 0;
 
         List<Candle> history = new ArrayList<>();
         List<Trade> trades = new ArrayList<>();
         List<EquityPoint> equityCurve = new ArrayList<>();
+        int exposureBars = 0;
 
         int winningClosedTrades = 0;
         int closedTrades = 0;
@@ -46,35 +67,45 @@ public class SimulationEngine {
         for (Candle candle : request.candles()) {
             history.add(candle);
             BigDecimal price = candle.close();
+            BigDecimal buyPrice = applySlippage(price, request.slippageBps(), true);
+            BigDecimal sellPrice = applySlippage(price, request.slippageBps(), false);
             StrategySignal signal = strategy.generateSignal(history, openQuantity);
+            boolean riskExitTriggered = false;
+
+            if (openQuantity > 0) {
+                barsHeld++;
+                riskExitTriggered = shouldExitForRisk(request, price, entryPrice, barsHeld);
+            }
 
             if (signal == StrategySignal.BUY && openQuantity == 0L) {
-                BigDecimal notional = price.multiply(BigDecimal.valueOf(request.quantityPerTrade()));
+                long quantityToOpen = Math.min(request.quantityPerTrade(), effectiveMaxPositionSize);
+                BigDecimal notional = buyPrice.multiply(BigDecimal.valueOf(quantityToOpen));
                 BigDecimal fee = calculateFee(notional, request.feeBps());
                 BigDecimal totalCost = notional.add(fee);
 
                 if (cash.compareTo(totalCost) >= 0) {
                     cash = cash.subtract(totalCost);
-                    openQuantity = request.quantityPerTrade();
-                    entryPrice = price;
+                    openQuantity = quantityToOpen;
+                    entryPrice = buyPrice;
                     entryFee = fee;
+                    barsHeld = 0;
 
                     trades.add(new Trade(
                             candle.timestamp(),
                             request.symbol(),
                             OrderSide.BUY,
                             openQuantity,
-                            price,
+                            buyPrice.setScale(4, RoundingMode.HALF_UP),
                             fee,
                             BigDecimal.ZERO
                     ));
                 }
-            } else if (signal == StrategySignal.SELL && openQuantity > 0L) {
-                BigDecimal notional = price.multiply(BigDecimal.valueOf(openQuantity));
+            } else if (openQuantity > 0L && (signal == StrategySignal.SELL || riskExitTriggered)) {
+                BigDecimal notional = sellPrice.multiply(BigDecimal.valueOf(openQuantity));
                 BigDecimal fee = calculateFee(notional, request.feeBps());
                 cash = cash.add(notional.subtract(fee));
 
-                BigDecimal grossPnl = price.subtract(entryPrice).multiply(BigDecimal.valueOf(openQuantity));
+                BigDecimal grossPnl = sellPrice.subtract(entryPrice).multiply(BigDecimal.valueOf(openQuantity));
                 BigDecimal realizedPnl = grossPnl.subtract(entryFee).subtract(fee).setScale(4, RoundingMode.HALF_UP);
 
                 trades.add(new Trade(
@@ -82,7 +113,7 @@ public class SimulationEngine {
                         request.symbol(),
                         OrderSide.SELL,
                         openQuantity,
-                        price,
+                        sellPrice.setScale(4, RoundingMode.HALF_UP),
                         fee,
                         realizedPnl
                 ));
@@ -95,6 +126,11 @@ public class SimulationEngine {
                 openQuantity = 0L;
                 entryPrice = BigDecimal.ZERO;
                 entryFee = BigDecimal.ZERO;
+                barsHeld = 0;
+            }
+
+            if (openQuantity > 0L) {
+                exposureBars++;
             }
 
             BigDecimal equity = cash.add(price.multiply(BigDecimal.valueOf(openQuantity)));
@@ -106,6 +142,9 @@ public class SimulationEngine {
                 request.initialCash(),
                 endingEquity,
                 equityCurve,
+                trades,
+                exposureBars,
+                request.candles().size(),
                 trades.size(),
                 closedTrades,
                 winningClosedTrades
@@ -127,10 +166,55 @@ public class SimulationEngine {
                 .setScale(4, RoundingMode.HALF_UP);
     }
 
+    private BigDecimal applySlippage(BigDecimal price, BigDecimal slippageBps, boolean isBuy) {
+        if (slippageBps.compareTo(BigDecimal.ZERO) == 0) {
+            return price;
+        }
+        BigDecimal slippageFraction = slippageBps.divide(BigDecimal.valueOf(10_000), 8, RoundingMode.HALF_UP);
+        BigDecimal multiplier = isBuy
+                ? BigDecimal.ONE.add(slippageFraction)
+                : BigDecimal.ONE.subtract(slippageFraction);
+        return price.multiply(multiplier);
+    }
+
+    private boolean shouldExitForRisk(
+            SimulationRequest request,
+            BigDecimal marketPrice,
+            BigDecimal entryPrice,
+            int barsHeld
+    ) {
+        if (request.maxHoldingCandles() > 0 && barsHeld >= request.maxHoldingCandles()) {
+            return true;
+        }
+
+        if (request.stopLossPct().compareTo(BigDecimal.ZERO) > 0) {
+            BigDecimal stopMultiplier = BigDecimal.ONE.subtract(
+                    request.stopLossPct().divide(BigDecimal.valueOf(100), 8, RoundingMode.HALF_UP)
+            );
+            BigDecimal stopLevel = entryPrice.multiply(stopMultiplier);
+            if (marketPrice.compareTo(stopLevel) <= 0) {
+                return true;
+            }
+        }
+
+        if (request.takeProfitPct().compareTo(BigDecimal.ZERO) > 0) {
+            BigDecimal takeProfitMultiplier = BigDecimal.ONE.add(
+                    request.takeProfitPct().divide(BigDecimal.valueOf(100), 8, RoundingMode.HALF_UP)
+            );
+            BigDecimal takeProfitLevel = entryPrice.multiply(takeProfitMultiplier);
+            return marketPrice.compareTo(takeProfitLevel) >= 0;
+        }
+
+        return false;
+    }
+
     private PerformanceMetrics calculateMetrics(
             BigDecimal initialCash,
             BigDecimal endingEquity,
             List<EquityPoint> equityCurve,
+            List<Trade> trades,
+            int exposureBars,
+            int totalBars,
             int totalTrades,
             int closedTrades,
             int winningClosedTrades
@@ -143,14 +227,59 @@ public class SimulationEngine {
         double maxDrawdownPct = calculateMaxDrawdown(equityCurve);
         double sharpeRatio = calculateSharpeRatio(equityCurve);
         double winRatePct = closedTrades == 0 ? 0.0 : (winningClosedTrades * 100.0) / closedTrades;
+        TradeStatistics tradeStats = calculateTradeStatistics(trades, closedTrades, winningClosedTrades);
+        double exposureTimePct = totalBars == 0 ? 0.0 : (exposureBars * 100.0) / totalBars;
 
         return new PerformanceMetrics(
                 roundMetric(totalReturnPct),
                 roundMetric(maxDrawdownPct),
                 roundMetric(sharpeRatio),
                 roundMetric(winRatePct),
+                roundMetric(tradeStats.profitFactor()),
+                roundMetric(tradeStats.expectancy()),
+                roundMetric(tradeStats.averageWin()),
+                roundMetric(tradeStats.averageLoss()),
+                roundMetric(exposureTimePct),
                 totalTrades
         );
+    }
+
+    private TradeStatistics calculateTradeStatistics(List<Trade> trades, int closedTrades, int winningClosedTrades) {
+        BigDecimal grossProfit = BigDecimal.ZERO;
+        BigDecimal grossLossAbs = BigDecimal.ZERO;
+        BigDecimal totalClosedPnl = BigDecimal.ZERO;
+        BigDecimal totalLossPnl = BigDecimal.ZERO;
+        int losingClosedTrades = 0;
+
+        for (Trade trade : trades) {
+            if (trade.side() != OrderSide.SELL) {
+                continue;
+            }
+            BigDecimal pnl = trade.realizedPnl();
+            totalClosedPnl = totalClosedPnl.add(pnl);
+            if (pnl.compareTo(BigDecimal.ZERO) > 0) {
+                grossProfit = grossProfit.add(pnl);
+            } else if (pnl.compareTo(BigDecimal.ZERO) < 0) {
+                grossLossAbs = grossLossAbs.add(pnl.abs());
+                totalLossPnl = totalLossPnl.add(pnl);
+                losingClosedTrades++;
+            }
+        }
+
+        double profitFactor = grossLossAbs.compareTo(BigDecimal.ZERO) == 0
+                ? 0.0
+                : grossProfit.divide(grossLossAbs, 8, RoundingMode.HALF_UP).doubleValue();
+        double expectancy = closedTrades == 0
+                ? 0.0
+                : totalClosedPnl.divide(BigDecimal.valueOf(closedTrades), 8, RoundingMode.HALF_UP).doubleValue();
+        double averageWin = winningClosedTrades == 0
+                ? 0.0
+                : grossProfit.divide(BigDecimal.valueOf(winningClosedTrades), 8, RoundingMode.HALF_UP).doubleValue();
+        double averageLoss = losingClosedTrades == 0
+                ? 0.0
+                : totalLossPnl.divide(BigDecimal.valueOf(losingClosedTrades), 8, RoundingMode.HALF_UP).doubleValue();
+
+        return new TradeStatistics(profitFactor, expectancy, averageWin, averageLoss);
     }
 
     private double calculateMaxDrawdown(List<EquityPoint> equityCurve) {
@@ -212,5 +341,13 @@ public class SimulationEngine {
 
     private double roundMetric(double value) {
         return BigDecimal.valueOf(value).setScale(4, RoundingMode.HALF_UP).doubleValue();
+    }
+
+    private record TradeStatistics(
+            double profitFactor,
+            double expectancy,
+            double averageWin,
+            double averageLoss
+    ) {
     }
 }

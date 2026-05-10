@@ -22,6 +22,12 @@
       <label for="symbol">Symbol</label>
       <input id="symbol" type="text" value="AAPL">
 
+      <label for="strategy">Strategy</label>
+      <select id="strategy">
+        <option value="sma-cross" selected>SMA Cross</option>
+        <option value="mean-reversion">Mean Reversion</option>
+      </select>
+
       <label for="initialCash">Initial Cash</label>
       <input id="initialCash" type="number" step="0.01" value="10000">
 
@@ -31,11 +37,91 @@
       <label for="feeBps">Fee (bps)</label>
       <input id="feeBps" type="number" step="0.1" min="0" value="5.0">
 
+      <label for="slippageBps">Slippage (bps)</label>
+      <input id="slippageBps" type="number" step="0.1" min="0" value="0.0">
+
+      <label for="maxPositionSize">Max Position Size (shares, 0 = qty per trade)</label>
+      <input id="maxPositionSize" type="number" step="1" min="0" value="0">
+
+      <label for="maxHoldingCandles">Max Holding Candles (0 = disabled)</label>
+      <input id="maxHoldingCandles" type="number" step="1" min="0" value="0">
+
+      <label for="stopLossPct">Stop Loss % (0 = disabled)</label>
+      <input id="stopLossPct" type="number" step="0.1" min="0" value="0.0">
+
+      <label for="takeProfitPct">Take Profit % (0 = disabled)</label>
+      <input id="takeProfitPct" type="number" step="0.1" min="0" value="0.0">
+    </div>
+
+    <div id="smaParams" class="form-grid strategy-group">
       <label for="shortWindow">Short SMA Window</label>
       <input id="shortWindow" type="number" step="1" min="2" value="3">
 
       <label for="longWindow">Long SMA Window</label>
       <input id="longWindow" type="number" step="1" min="3" value="5">
+    </div>
+
+    <div id="meanReversionParams" class="form-grid strategy-group hidden">
+      <label for="meanReversionWindow">Mean Reversion Window</label>
+      <input id="meanReversionWindow" type="number" step="1" min="2" value="10">
+
+      <label for="meanReversionThresholdPct">Deviation Threshold (%)</label>
+      <input id="meanReversionThresholdPct" type="number" step="0.1" min="0.1" value="2.0">
+    </div>
+
+    <hr class="section-divider">
+    <h3>Parameter Sweep (Grid Search)</h3>
+    <p class="help-text">Evaluate many parameter combinations and rank the best results.</p>
+
+    <div class="form-grid strategy-group">
+      <label for="sweepOptimizeFor">Optimize For</label>
+      <select id="sweepOptimizeFor">
+        <option value="total-return-pct" selected>Total Return %</option>
+        <option value="max-drawdown-pct">Min Max Drawdown %</option>
+        <option value="sharpe-ratio">Sharpe Ratio</option>
+        <option value="win-rate-pct">Win Rate %</option>
+        <option value="profit-factor">Profit Factor</option>
+        <option value="expectancy">Expectancy</option>
+      </select>
+
+      <label for="sweepMaxResults">Top Results To Return</label>
+      <input id="sweepMaxResults" type="number" step="1" min="1" max="50" value="10">
+    </div>
+
+    <div id="sweepSmaParams" class="form-grid strategy-group">
+      <label for="sweepShortStart">SMA Short Start</label>
+      <input id="sweepShortStart" type="number" step="1" min="2" value="2">
+      <label for="sweepShortEnd">SMA Short End</label>
+      <input id="sweepShortEnd" type="number" step="1" min="2" value="10">
+      <label for="sweepShortStep">SMA Short Step</label>
+      <input id="sweepShortStep" type="number" step="1" min="1" value="1">
+
+      <label for="sweepLongStart">SMA Long Start</label>
+      <input id="sweepLongStart" type="number" step="1" min="3" value="5">
+      <label for="sweepLongEnd">SMA Long End</label>
+      <input id="sweepLongEnd" type="number" step="1" min="3" value="20">
+      <label for="sweepLongStep">SMA Long Step</label>
+      <input id="sweepLongStep" type="number" step="1" min="1" value="1">
+    </div>
+
+    <div id="sweepMeanReversionParams" class="form-grid strategy-group hidden">
+      <label for="sweepMeanWindowStart">Mean Reversion Window Start</label>
+      <input id="sweepMeanWindowStart" type="number" step="1" min="2" value="5">
+      <label for="sweepMeanWindowEnd">Mean Reversion Window End</label>
+      <input id="sweepMeanWindowEnd" type="number" step="1" min="2" value="20">
+      <label for="sweepMeanWindowStep">Mean Reversion Window Step</label>
+      <input id="sweepMeanWindowStep" type="number" step="1" min="1" value="1">
+
+      <label for="sweepMeanThresholdStart">Threshold Start (%)</label>
+      <input id="sweepMeanThresholdStart" type="number" step="0.1" min="0.1" value="0.5">
+      <label for="sweepMeanThresholdEnd">Threshold End (%)</label>
+      <input id="sweepMeanThresholdEnd" type="number" step="0.1" min="0.1" value="3.0">
+      <label for="sweepMeanThresholdStep">Threshold Step (%)</label>
+      <input id="sweepMeanThresholdStep" type="number" step="0.1" min="0.1" value="0.5">
+    </div>
+
+    <div class="button-row">
+      <button id="runSweepButton" type="button">Run Parameter Sweep</button>
     </div>
 
     <hr class="section-divider">
@@ -71,6 +157,10 @@
 
     <div class="metrics-grid">
       <div class="metric">
+        <span class="metric-label">Run ID</span>
+        <span id="metricRunId" class="metric-value">-</span>
+      </div>
+      <div class="metric">
         <span class="metric-label">Strategy</span>
         <span id="metricStrategy" class="metric-value">-</span>
       </div>
@@ -99,6 +189,26 @@
         <span id="metricWinRate" class="metric-value">-</span>
       </div>
       <div class="metric">
+        <span class="metric-label">Profit Factor</span>
+        <span id="metricProfitFactor" class="metric-value">-</span>
+      </div>
+      <div class="metric">
+        <span class="metric-label">Expectancy</span>
+        <span id="metricExpectancy" class="metric-value">-</span>
+      </div>
+      <div class="metric">
+        <span class="metric-label">Average Win</span>
+        <span id="metricAverageWin" class="metric-value">-</span>
+      </div>
+      <div class="metric">
+        <span class="metric-label">Average Loss</span>
+        <span id="metricAverageLoss" class="metric-value">-</span>
+      </div>
+      <div class="metric">
+        <span class="metric-label">Exposure Time %</span>
+        <span id="metricExposureTime" class="metric-value">-</span>
+      </div>
+      <div class="metric">
         <span class="metric-label">Trade Count</span>
         <span id="metricTradeCount" class="metric-value">-</span>
       </div>
@@ -121,6 +231,23 @@
       </thead>
       <tbody id="tradesTableBody">
       <tr><td colspan="6">No trades yet.</td></tr>
+      </tbody>
+    </table>
+
+    <h3>Sweep Results</h3>
+    <table>
+      <thead>
+      <tr>
+        <th>Rank</th>
+        <th>Configuration</th>
+        <th>Objective Score</th>
+        <th>Total Return %</th>
+        <th>Sharpe</th>
+        <th>Trade Count</th>
+      </tr>
+      </thead>
+      <tbody id="sweepResultsBody">
+      <tr><td colspan="6">No sweep results yet.</td></tr>
       </tbody>
     </table>
   </section>

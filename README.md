@@ -22,18 +22,25 @@ This repository is designed to become a resume-quality software engineering proj
 ## Current backend capabilities
 
 - Run SMA crossover backtests from uploaded CSV files
+- Run mean-reversion backtests from uploaded CSV files
 - Accept raw Yahoo Finance CSV exports directly (no conversion script required)
-- Simulate buy/sell execution with configurable fee basis points
+- Simulate buy/sell execution with configurable fees, slippage, and risk controls
 - Track:
   - trade events
   - equity curve
-  - summary metrics (return, drawdown, Sharpe, win rate)
+  - summary metrics (return, drawdown, Sharpe, win rate, profit factor, expectancy, average win/loss, exposure time)
 - Preview uploaded candle datasets (row count and date/price range)
 
 ## API endpoints (initial)
 
 - `POST /api/v1/simulations/csv/preview`
 - `POST /api/v1/simulations/csv/backtest`
+- `POST /api/v1/simulations/csv/sweep`
+- `GET /api/v1/simulations/runs/{runId}`
+- `GET /api/v1/simulations/runs` (paged + filterable)
+- `GET /api/v1/simulations/runs/compare?leftRunId={id}&rightRunId={id}`
+
+> Note: current default persistence uses in-memory H2 (`jdbc:h2:mem`), so saved runs are available while the app is running and reset on restart.
 
 ## Local setup
 
@@ -83,9 +90,72 @@ Once the app is running, open:
 
 From there you can:
 
-- adjust strategy parameters
+- choose strategy (SMA Cross or Mean Reversion)
 - upload a CSV, preview candle stats, and run a CSV-based backtest
 - inspect metrics, trades, and equity curve output
+
+### CSV backtest parameters
+
+`POST /api/v1/simulations/csv/backtest` accepts multipart form fields:
+
+- `file` (CSV upload)
+- `symbol`
+- `strategy`: `sma-cross` (default) or `mean-reversion`
+- `initialCash`
+- `quantityPerTrade`
+- `feeBps`
+- `slippageBps` (`0` disables slippage)
+- `maxPositionSize` (`0` means use quantityPerTrade limit)
+- `maxHoldingCandles` (`0` disables holding-period exits)
+- `stopLossPct` (`0` disables stop-loss exits)
+- `takeProfitPct` (`0` disables take-profit exits)
+- SMA params:
+  - `shortWindow`
+  - `longWindow`
+- Mean reversion params:
+  - `meanReversionWindow`
+  - `meanReversionThresholdPct`
+
+### Parameter sweep endpoint
+
+`POST /api/v1/simulations/csv/sweep` runs grid-search combinations and ranks them by an objective.
+
+Core fields:
+- all standard backtest controls (`file`, `symbol`, strategy/risk/execution controls)
+- `optimizeFor`:
+  - `total-return-pct`
+  - `max-drawdown-pct` (lower drawdown is better)
+  - `sharpe-ratio`
+  - `win-rate-pct`
+  - `profit-factor`
+  - `expectancy`
+- `maxResults` (top N combinations returned)
+
+SMA sweep range fields:
+- `shortWindowStart`, `shortWindowEnd`, `shortWindowStep`
+- `longWindowStart`, `longWindowEnd`, `longWindowStep`
+
+Mean reversion sweep range fields:
+- `meanReversionWindowStart`, `meanReversionWindowEnd`, `meanReversionWindowStep`
+- `meanReversionThresholdStartPct`, `meanReversionThresholdEndPct`, `meanReversionThresholdStepPct`
+
+Backtest responses include `runId`, which can be used to fetch the saved run later:
+
+```bash
+curl http://localhost:8080/api/v1/simulations/runs/1
+```
+
+List run history:
+
+```bash
+curl "http://localhost:8080/api/v1/simulations/runs?page=0&size=10&symbol=MSFT&strategy=mean"
+```
+
+Compare two runs (delta fields are `right - left`):
+
+```bash
+curl "http://localhost:8080/api/v1/simulations/runs/compare?leftRunId=1&rightRunId=2"
+```
 
 ### Recommended real-world stock workflow (no API key)
 
@@ -157,11 +227,11 @@ Example row:
 
 ## Planned next steps
 
-1. Multi-strategy framework (add mean reversion strategy and strategy selector)
-2. Persist simulation runs/results in PostgreSQL
-3. Add risk controls (position sizing, stop loss, max drawdown guardrails)
-4. Add richer analysis metrics and parameter sweeps
-5. Keep improving the lightweight UI before considering a heavier frontend stack
+1. Quality and reliability hardening (expand deterministic tests and integration coverage)
+2. Standardize API error schema and edge-case handling
+3. Add performance tests for larger datasets and sweep workloads
+4. Improve saved-run and comparison UX in the lightweight UI
+5. Add durable DB profile (e.g., PostgreSQL) when ready for persistent multi-session history
 
 ---
 
