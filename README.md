@@ -98,6 +98,11 @@ From there you can:
 - `initialCash`
 - `quantityPerTrade`
 - `feeBps`
+- `slippageBps` (`0` disables slippage)
+- `maxPositionSize` (`0` means use quantityPerTrade limit)
+- `maxHoldingCandles` (`0` disables holding-period exits)
+- `stopLossPct` (`0` disables stop-loss exits)
+- `takeProfitPct` (`0` disables take-profit exits)
 - SMA params:
   - `shortWindow`
   - `longWindow`

@@ -71,6 +71,11 @@ public class SimulationController {
             @RequestParam("initialCash") @DecimalMin("100.00") BigDecimal initialCash,
             @RequestParam("quantityPerTrade") @Min(1) long quantityPerTrade,
             @RequestParam("feeBps") @DecimalMin("0.0") BigDecimal feeBps,
+            @RequestParam(name = "slippageBps", defaultValue = "0.0") @DecimalMin("0.0") BigDecimal slippageBps,
+            @RequestParam(name = "stopLossPct", defaultValue = "0.0") @DecimalMin("0.0") BigDecimal stopLossPct,
+            @RequestParam(name = "takeProfitPct", defaultValue = "0.0") @DecimalMin("0.0") BigDecimal takeProfitPct,
+            @RequestParam(name = "maxPositionSize", defaultValue = "0") @Min(0) long maxPositionSize,
+            @RequestParam(name = "maxHoldingCandles", defaultValue = "0") @Min(0) int maxHoldingCandles,
             @RequestParam("shortWindow") @Min(2) int shortWindow,
             @RequestParam("longWindow") @Min(3) int longWindow,
             @RequestParam(name = "meanReversionWindow", defaultValue = "10") @Min(2) int meanReversionWindow,
@@ -90,7 +95,12 @@ public class SimulationController {
                 strategyConfig,
                 initialCash,
                 quantityPerTrade,
-                feeBps
+                feeBps,
+                slippageBps,
+                stopLossPct,
+                takeProfitPct,
+                maxPositionSize,
+                maxHoldingCandles
         );
     }
 

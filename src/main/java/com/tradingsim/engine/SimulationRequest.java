@@ -10,6 +10,11 @@ public record SimulationRequest(
         BigDecimal initialCash,
         long quantityPerTrade,
         BigDecimal feeBps,
+        BigDecimal slippageBps,
+        BigDecimal stopLossPct,
+        BigDecimal takeProfitPct,
+        long maxPositionSize,
+        int maxHoldingCandles,
         List<Candle> candles
 ) {
 }

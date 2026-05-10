@@ -51,6 +51,11 @@ function baseParameters() {
     initialCash: Number(document.getElementById("initialCash").value),
     quantityPerTrade: Number(document.getElementById("quantityPerTrade").value),
     feeBps: Number(document.getElementById("feeBps").value),
+    slippageBps: Number(document.getElementById("slippageBps").value),
+    maxPositionSize: Number(document.getElementById("maxPositionSize").value),
+    maxHoldingCandles: Number(document.getElementById("maxHoldingCandles").value),
+    stopLossPct: Number(document.getElementById("stopLossPct").value),
+    takeProfitPct: Number(document.getElementById("takeProfitPct").value),
     shortWindow: Number(document.getElementById("shortWindow").value),
     longWindow: Number(document.getElementById("longWindow").value),
     meanReversionWindow: Number(document.getElementById("meanReversionWindow").value),
@@ -75,6 +80,11 @@ function buildCsvFormData() {
   formData.append("initialCash", String(params.initialCash));
   formData.append("quantityPerTrade", String(params.quantityPerTrade));
   formData.append("feeBps", String(params.feeBps));
+  formData.append("slippageBps", String(params.slippageBps));
+  formData.append("maxPositionSize", String(params.maxPositionSize));
+  formData.append("maxHoldingCandles", String(params.maxHoldingCandles));
+  formData.append("stopLossPct", String(params.stopLossPct));
+  formData.append("takeProfitPct", String(params.takeProfitPct));
   formData.append("shortWindow", String(params.shortWindow));
   formData.append("longWindow", String(params.longWindow));
   formData.append("strategy", params.strategy);

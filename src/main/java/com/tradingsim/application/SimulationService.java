@@ -49,7 +49,12 @@ public class SimulationService {
             StrategyConfig strategyConfig,
             BigDecimal initialCash,
             long quantityPerTrade,
-            BigDecimal feeBps
+            BigDecimal feeBps,
+            BigDecimal slippageBps,
+            BigDecimal stopLossPct,
+            BigDecimal takeProfitPct,
+            long maxPositionSize,
+            int maxHoldingCandles
     ) {
         List<Candle> candles = csvCandleService.parseCandles(file);
         return runBacktestWithCandles(
@@ -58,6 +63,11 @@ public class SimulationService {
                 initialCash,
                 quantityPerTrade,
                 feeBps,
+                slippageBps,
+                stopLossPct,
+                takeProfitPct,
+                maxPositionSize,
+                maxHoldingCandles,
                 candles
         );
     }
@@ -75,6 +85,11 @@ public class SimulationService {
             BigDecimal initialCash,
             long quantityPerTrade,
             BigDecimal feeBps,
+            BigDecimal slippageBps,
+            BigDecimal stopLossPct,
+            BigDecimal takeProfitPct,
+            long maxPositionSize,
+            int maxHoldingCandles,
             List<Candle> candles
     ) {
         TradingStrategy selectedStrategy = strategyFactory.create(strategyConfig);
@@ -84,6 +99,11 @@ public class SimulationService {
                 initialCash,
                 quantityPerTrade,
                 feeBps,
+                slippageBps,
+                stopLossPct,
+                takeProfitPct,
+                maxPositionSize,
+                maxHoldingCandles,
                 candles
         );
 
