@@ -25,6 +25,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.util.List;
 
 /**
@@ -145,16 +146,16 @@ public class SimulationService {
                 toRunSummary(leftRun),
                 toRunSummary(rightRun),
                 new RunComparisonResponse.DeltaMetrics(
-                        rightRun.getEndingEquity().subtract(leftRun.getEndingEquity()).doubleValue(),
-                        rightRun.getTotalReturnPct() - leftRun.getTotalReturnPct(),
-                        rightRun.getMaxDrawdownPct() - leftRun.getMaxDrawdownPct(),
-                        rightRun.getSharpeRatio() - leftRun.getSharpeRatio(),
-                        rightRun.getWinRatePct() - leftRun.getWinRatePct(),
-                        rightRun.getProfitFactor() - leftRun.getProfitFactor(),
-                        rightRun.getExpectancy() - leftRun.getExpectancy(),
-                        rightRun.getAverageWin() - leftRun.getAverageWin(),
-                        rightRun.getAverageLoss() - leftRun.getAverageLoss(),
-                        rightRun.getExposureTimePct() - leftRun.getExposureTimePct(),
+                        roundMetric(rightRun.getEndingEquity().subtract(leftRun.getEndingEquity()).doubleValue()),
+                        roundMetric(rightRun.getTotalReturnPct() - leftRun.getTotalReturnPct()),
+                        roundMetric(rightRun.getMaxDrawdownPct() - leftRun.getMaxDrawdownPct()),
+                        roundMetric(rightRun.getSharpeRatio() - leftRun.getSharpeRatio()),
+                        roundMetric(rightRun.getWinRatePct() - leftRun.getWinRatePct()),
+                        roundMetric(rightRun.getProfitFactor() - leftRun.getProfitFactor()),
+                        roundMetric(rightRun.getExpectancy() - leftRun.getExpectancy()),
+                        roundMetric(rightRun.getAverageWin() - leftRun.getAverageWin()),
+                        roundMetric(rightRun.getAverageLoss() - leftRun.getAverageLoss()),
+                        roundMetric(rightRun.getExposureTimePct() - leftRun.getExposureTimePct()),
                         rightRun.getTradeCount() - leftRun.getTradeCount()
                 )
         );
@@ -275,6 +276,10 @@ public class SimulationService {
     private SimulationRunEntity loadRun(long runId) {
         return simulationRunRepository.findById(runId)
                 .orElseThrow(() -> new IllegalArgumentException("Simulation run not found for id=" + runId));
+    }
+
+    private double roundMetric(double value) {
+        return BigDecimal.valueOf(value).setScale(4, RoundingMode.HALF_UP).doubleValue();
     }
 
     private BacktestRunResponse.TradeDto toTradeDto(SimulationTradeEntity trade) {
