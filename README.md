@@ -245,6 +245,8 @@ Then open:
 
 - `http://localhost:8080`
 
+> Note: PostgreSQL is intentionally only exposed to the app container (no host `5432` binding) to avoid local port conflicts.
+
 Stop services:
 
 ```bash
