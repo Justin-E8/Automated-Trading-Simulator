@@ -14,7 +14,7 @@ This should be strong enough to discuss in internship interviews as a real softw
 ## Current implementation status snapshot
 
 - Completed: Phases 0 through 6 core milestones (CSV workflow, multi-strategy support, risk controls, persistence, run history APIs, expanded analytics + parameter sweep)
-- Next active phase: **Phase 7 - Quality and reliability hardening**
+- In progress (Phase 7): standardized API error response schema, expanded engine/strategy tests, baseline performance test, and PostgreSQL Testcontainers integration coverage
 
 ## 2) What the project should do (MVP)
 

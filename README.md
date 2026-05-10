@@ -17,7 +17,9 @@ This repository is designed to become a resume-quality software engineering proj
 - Spring Boot (REST API + validation + app lifecycle)
 - Maven
 - H2 (dev runtime DB)
+- PostgreSQL driver (runtime profile support)
 - JUnit 5 / Spring Boot Test
+- Testcontainers (PostgreSQL integration tests)
 
 ## Current backend capabilities
 
@@ -39,6 +41,26 @@ This repository is designed to become a resume-quality software engineering proj
 - `GET /api/v1/simulations/runs/{runId}`
 - `GET /api/v1/simulations/runs` (paged + filterable)
 - `GET /api/v1/simulations/runs/compare?leftRunId={id}&rightRunId={id}`
+
+### API error response schema
+
+All controller errors now return a consistent JSON payload:
+
+```json
+{
+  "timestamp": "2026-05-10T21:20:00Z",
+  "status": 400,
+  "code": "VALIDATION_ERROR",
+  "message": "must be greater than 0",
+  "error": "must be greater than 0",
+  "path": "/api/v1/simulations/runs/compare",
+  "validationErrors": [
+    { "field": "leftRunId", "message": "must be greater than 0" }
+  ]
+}
+```
+
+`error` is retained as a compatibility alias for existing UI parsing.
 
 > Note: current default persistence uses in-memory H2 (`jdbc:h2:mem`), so saved runs are available while the app is running and reset on restart.
 
@@ -227,11 +249,10 @@ Example row:
 
 ## Planned next steps
 
-1. Quality and reliability hardening (expand deterministic tests and integration coverage)
-2. Standardize API error schema and edge-case handling
-3. Add performance tests for larger datasets and sweep workloads
-4. Improve saved-run and comparison UX in the lightweight UI
-5. Add durable DB profile (e.g., PostgreSQL) when ready for persistent multi-session history
+1. Continue Phase 7 hardening (additional edge-case + failure-path tests)
+2. Expand performance coverage for large sweep workloads
+3. Improve saved-run and comparison UX in the lightweight UI
+4. Add durable DB profile wiring for persistent multi-session history
 
 ---
 
